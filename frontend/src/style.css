@@ -1,14 +1,14 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root, :root.light {
+:root,
+:root.light {
   --bg-gradient:
     radial-gradient(at 0% 0%, rgba(224, 231, 255, 0.45) 0px, transparent 50%),
     radial-gradient(at 50% 0%, rgba(245, 243, 255, 0.5) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(254, 244, 244, 0.45) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(240, 253, 250, 0.3) 0px, transparent 50%),
-    #fafcfd;
+    radial-gradient(at 50% 100%, rgba(240, 253, 250, 0.3) 0px, transparent 50%), #fafcfd;
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-bold: #0f172a;
@@ -21,7 +21,11 @@
   --input-focus-bg: rgba(255, 255, 255, 0.85);
   --shadow-color: rgba(0, 0, 0, 0.02);
   --shadow-hover: rgba(0, 0, 0, 0.04);
-  --active-nav-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+  --active-nav-bg: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(99, 102, 241, 0.08) 100%
+  );
   --active-nav-text: #1d4ed8;
   --active-nav-border: #3b82f6;
   --button-shadow: rgba(59, 130, 246, 0.25);
@@ -47,8 +51,7 @@
   --bg-gradient:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.18) 0px, transparent 55%),
     radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.12) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 55%),
-    #090d16;
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 55%), #090d16;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-bold: #f8fafc;
@@ -61,7 +64,11 @@
   --input-focus-bg: rgba(255, 255, 255, 0.08);
   --shadow-color: rgba(0, 0, 0, 0.3);
   --shadow-hover: rgba(0, 0, 0, 0.4);
-  --active-nav-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(244, 63, 94, 0.05) 100%);
+  --active-nav-bg: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.15) 0%,
+    rgba(244, 63, 94, 0.05) 100%
+  );
   --active-nav-text: #f8fafc;
   --active-nav-border: #6366f1;
   --button-shadow: rgba(99, 102, 241, 0.35);
@@ -91,7 +98,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 0.5s ease, color 0.5s ease;
+  transition:
+    background 0.5s ease,
+    color 0.5s ease;
 }
 
 * {
@@ -168,7 +177,18 @@ section.bg-white:not(button) {
 }
 
 /* Base Text Color Overrides */
-p, span, h1, h2, h3, h4, h5, h6, label, div, td, th {
+p,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+label,
+div,
+td,
+th {
   color: var(--text-primary);
   transition: color 0.3s ease;
 }
@@ -196,7 +216,10 @@ aside {
   -webkit-backdrop-filter: blur(25px) saturate(180%);
   border-right: 1px solid var(--sidebar-border) !important;
   box-shadow: 4px 0 30px var(--shadow-color) !important;
-  transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+  transition:
+    background 0.5s ease,
+    border-color 0.5s ease,
+    box-shadow 0.5s ease;
 }
 
 /* Profile divider inside sidebar */
@@ -232,7 +255,9 @@ div.border.border-slate-200,
 }
 
 /* Inputs and Select Boxes */
-input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
   background: var(--input-bg) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -242,7 +267,9 @@ input:not([type="checkbox"]):not([type="radio"]), select, textarea {
   transition: all 0.3s ease !important;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
+input:not([type='checkbox']):not([type='radio']):focus,
+select:focus,
+textarea:focus {
   background: var(--input-focus-bg) !important;
   border-color: var(--active-nav-border) !important;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
@@ -262,12 +289,14 @@ select option {
 }
 
 /* Sidebar navigation links */
-nav a, aside a {
+nav a,
+aside a {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-secondary) !important;
 }
 
-nav a.active, aside a.active {
+nav a.active,
+aside a.active {
   background: var(--active-nav-bg) !important;
   border-left: 4px solid var(--active-nav-border) !important;
   padding-left: calc(1rem - 4px) !important;
@@ -276,7 +305,8 @@ nav a.active, aside a.active {
   box-shadow: inset 2px 0 10px rgba(99, 102, 241, 0.02);
 }
 
-nav a:not(.active):hover, aside a:not(.active):hover {
+nav a:not(.active):hover,
+aside a:not(.active):hover {
   background: var(--slate-100-override) !important;
   color: var(--text-primary) !important;
   transform: translateX(3px);
@@ -305,21 +335,19 @@ button.bg-blue-600:active,
 }
 
 /* Secondary outline buttons */
-button.border-slate-200:not([style*="background-color"]),
-.border-slate-200:not([style*="background-color"]) {
+button.border-slate-200:not([style*='background-color']),
+.border-slate-200:not([style*='background-color']) {
   border-color: var(--outline-btn-border) !important;
   background: var(--outline-btn-bg) !important;
   color: var(--text-primary) !important;
   transition: all 0.3s ease;
 }
 
-
-button.border-slate-200:not([style*="background-color"]):hover,
-.border-slate-200:not([style*="background-color"]):hover {
+button.border-slate-200:not([style*='background-color']):hover,
+.border-slate-200:not([style*='background-color']):hover {
   background: var(--slate-100-override) !important;
   border-color: var(--outline-btn-border) !important;
 }
-
 
 /* Video Shell elements */
 .shared-video-shell {

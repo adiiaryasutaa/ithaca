@@ -1,112 +1,117 @@
-import { useEffect, useState } from 'react'
-import { RotateCcw, Trash2, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { PageHeader } from '@/components/drive/PageHeader'
-import { apiFetch, formatBytes } from '@/lib/api'
+import { useEffect, useState } from 'react';
+import { RotateCcw, Trash2, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/drive/PageHeader';
+import { apiFetch, formatBytes } from '@/lib/api';
 
 type TrashFile = {
-  id: string
-  name: string
-  mimeType: string
-  sizeBytes: string
-  provider: string
-  deletedAt: string
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: string;
+  provider: string;
+  deletedAt: string;
   connectedAccount: {
-    email: string
-    provider: string
-  }
-}
+    email: string;
+    provider: string;
+  };
+};
 
 export function TrashPage() {
-  const [files, setFiles] = useState<TrashFile[]>([])
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('')
+  const [files, setFiles] = useState<TrashFile[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
   async function loadTrash() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await apiFetch<{ files: TrashFile[] }>('/files/trash')
-      setFiles(data.files)
+      const data = await apiFetch<{ files: TrashFile[] }>('/files/trash');
+      setFiles(data.files);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load trash')
-      setMessageType('error')
+      setMessage(error instanceof Error ? error.message : 'Failed to load trash');
+      setMessageType('error');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadTrash().catch(() => undefined)
-  }, [])
+    loadTrash().catch(() => undefined);
+  }, []);
 
   function toggleSelect(id: string) {
-    const next = new Set(selectedIds)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setSelectedIds(next)
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
   }
 
   function toggleSelectAll() {
     if (selectedIds.size === files.length) {
-      setSelectedIds(new Set())
+      setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(files.map((f) => f.id)))
+      setSelectedIds(new Set(files.map((f) => f.id)));
     }
   }
 
   async function handleRestore(ids: string[]) {
-    if (ids.length === 0) return
-    setLoading(true)
-    setMessage('')
+    if (ids.length === 0) return;
+    setLoading(true);
+    setMessage('');
     try {
       await apiFetch('/files/batch/restore', {
         method: 'POST',
-        body: JSON.stringify({ fileIds: ids })
-      })
-      setFiles((prev) => prev.filter((f) => !ids.includes(f.id)))
+        body: JSON.stringify({ fileIds: ids }),
+      });
+      setFiles((prev) => prev.filter((f) => !ids.includes(f.id)));
       setSelectedIds((prev) => {
-        const next = new Set(prev)
-        ids.forEach((id) => next.delete(id))
-        return next
-      })
-      setMessage(`Successfully restored ${ids.length} file(s).`)
-      setMessageType('success')
-      window.dispatchEvent(new Event('9drive:storage-changed'))
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setMessage(`Successfully restored ${ids.length} file(s).`);
+      setMessageType('success');
+      window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to restore files')
-      setMessageType('error')
+      setMessage(error instanceof Error ? error.message : 'Failed to restore files');
+      setMessageType('error');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handlePermanentDelete(ids: string[]) {
-    if (ids.length === 0) return
-    if (!confirm(`Are you sure you want to permanently delete ${ids.length} file(s)? This action cannot be undone.`)) return
-    setLoading(true)
-    setMessage('')
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${ids.length} file(s)? This action cannot be undone.`,
+      )
+    )
+      return;
+    setLoading(true);
+    setMessage('');
     try {
       await apiFetch('/files/batch/permanent', {
         method: 'DELETE',
-        body: JSON.stringify({ fileIds: ids })
-      })
-      setFiles((prev) => prev.filter((f) => !ids.includes(f.id)))
+        body: JSON.stringify({ fileIds: ids }),
+      });
+      setFiles((prev) => prev.filter((f) => !ids.includes(f.id)));
       setSelectedIds((prev) => {
-        const next = new Set(prev)
-        ids.forEach((id) => next.delete(id))
-        return next
-      })
-      setMessage(`Permanently deleted ${ids.length} file(s).`)
-      setMessageType('success')
-      window.dispatchEvent(new Event('9drive:storage-changed'))
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setMessage(`Permanently deleted ${ids.length} file(s).`);
+      setMessageType('success');
+      window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to permanently delete files')
-      setMessageType('error')
+      setMessage(error instanceof Error ? error.message : 'Failed to permanently delete files');
+      setMessageType('error');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -118,10 +123,18 @@ export function TrashPage() {
         actions={
           selectedIds.size > 0 ? (
             <>
-              <Button variant="outline" onClick={() => handleRestore(Array.from(selectedIds))} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={() => handleRestore(Array.from(selectedIds))}
+                disabled={loading}
+              >
                 <RotateCcw className="h-4 w-4" /> Restore Selected ({selectedIds.size})
               </Button>
-              <Button variant="danger" onClick={() => handlePermanentDelete(Array.from(selectedIds))} disabled={loading}>
+              <Button
+                variant="danger"
+                onClick={() => handlePermanentDelete(Array.from(selectedIds))}
+                disabled={loading}
+              >
                 <Trash2 className="h-4 w-4" /> Delete Selected ({selectedIds.size})
               </Button>
             </>
@@ -135,7 +148,11 @@ export function TrashPage() {
             messageType === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
           }`}
         >
-          {messageType === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+          {messageType === 'success' ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <ShieldAlert className="h-4 w-4" />
+          )}
           {message}
         </p>
       ) : null}
@@ -169,7 +186,10 @@ export function TrashPage() {
               </thead>
               <tbody>
                 {files.map((file) => (
-                  <tr key={file.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition">
+                  <tr
+                    key={file.id}
+                    className="border-b border-slate-100 hover:bg-slate-50/50 transition"
+                  >
                     <td className="p-4">
                       <input
                         type="checkbox"
@@ -181,7 +201,10 @@ export function TrashPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <FileText className="h-5 w-5 text-slate-400 shrink-0" />
-                        <span className="font-medium truncate max-w-xs sm:max-w-md block" title={file.name}>
+                        <span
+                          className="font-medium truncate max-w-xs sm:max-w-md block"
+                          title={file.name}
+                        >
                           {file.name}
                         </span>
                       </div>
@@ -191,7 +214,10 @@ export function TrashPage() {
                     </td>
                     <td className="p-4 text-sm font-semibold">{formatBytes(file.sizeBytes)}</td>
                     <td className="p-4 text-sm text-slate-500">
-                      {new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(file.deletedAt))}
+                      {new Intl.DateTimeFormat('en', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      }).format(new Date(file.deletedAt))}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -223,5 +249,5 @@ export function TrashPage() {
         )}
       </Card>
     </>
-  )
+  );
 }

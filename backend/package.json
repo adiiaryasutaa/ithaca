@@ -13,7 +13,8 @@
     "seed:google-config": "tsx src/scripts/seed-google-config.ts",
     "seed:google-config:docker": "tsx src/scripts/seed-google-config-if-present.ts",
     "test:s3": "tsx src/scripts/test-s3-connection.ts",
-    "test:api-upload": "tsx src/scripts/test-api-upload.ts"
+    "test:api-upload": "tsx src/scripts/test-api-upload.ts",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -42,6 +43,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.9.1",
+    "prettier": "^3.9.5",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }

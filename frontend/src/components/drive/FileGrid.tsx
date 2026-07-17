@@ -1,25 +1,28 @@
-import { MoreVertical } from 'lucide-react'
-import type { MouseEvent } from 'react'
-import { Card } from '@/components/ui/card'
-import { FileIcon } from '@/components/drive/FileIcon'
-import type { FileItem } from '@/data/drive-data'
-import { cn } from '@/lib/utils'
+import { MoreVertical } from 'lucide-react';
+import type { MouseEvent } from 'react';
+import { Card } from '@/components/ui/card';
+import { FileIcon } from '@/components/drive/FileIcon';
+import type { FileItem } from '@/data/drive-data';
+import { cn } from '@/lib/utils';
 
-export type FileSizeScale = 'xs' | 'sm' | 'md' | 'lg'
+export type FileSizeScale = 'xs' | 'sm' | 'md' | 'lg';
 
-const scaleConfig: Record<FileSizeScale, {
-  grid: string
-  card: string
-  checkbox: string
-  menuBtn: string
-  iconShell: string
-  icon: string
-  title: string
-  date: string
-  tagsShell: string
-  tag: string
-  mtCard: string
-}> = {
+const scaleConfig: Record<
+  FileSizeScale,
+  {
+    grid: string;
+    card: string;
+    checkbox: string;
+    menuBtn: string;
+    iconShell: string;
+    icon: string;
+    title: string;
+    date: string;
+    tagsShell: string;
+    tag: string;
+    mtCard: string;
+  }
+> = {
   xs: {
     grid: 'grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-2',
     card: 'p-2.5',
@@ -72,62 +75,100 @@ const scaleConfig: Record<FileSizeScale, {
     tag: 'rounded-full bg-slate-100 px-3 py-1.5',
     mtCard: 'mt-6',
   },
-}
+};
 
 export function FileGrid({
   files,
   selectedFileIds = new Set<string>(),
   sizeScale = 'md',
   onFileContextMenu,
-  onToggleFile
+  onToggleFile,
 }: {
-  files: FileItem[]
-  selectedFileIds?: Set<string>
-  sizeScale?: FileSizeScale
-  onFileContextMenu?: (event: MouseEvent<HTMLElement>, file: FileItem) => void
-  onToggleFile?: (file: FileItem) => void
+  files: FileItem[];
+  selectedFileIds?: Set<string>;
+  sizeScale?: FileSizeScale;
+  onFileContextMenu?: (event: MouseEvent<HTMLElement>, file: FileItem) => void;
+  onToggleFile?: (file: FileItem) => void;
 }) {
-  const cfg = scaleConfig[sizeScale]
+  const cfg = scaleConfig[sizeScale];
   return (
-    <div className={cn("mt-5 grid", cfg.grid)}>
+    <div className={cn('mt-5 grid', cfg.grid)}>
       {files.map((file) => {
-        const selected = selectedFileIds.has(file.id ?? '')
+        const selected = selectedFileIds.has(file.id ?? '');
         return (
           <Card
             key={file.id ?? file.name}
             draggable
-            onDragStart={(event) => { event.dataTransfer.setData('text/plain', file.id ?? ''); event.dataTransfer.effectAllowed = 'move' }}
+            onDragStart={(event) => {
+              event.dataTransfer.setData('text/plain', file.id ?? '');
+              event.dataTransfer.effectAllowed = 'move';
+            }}
             onClick={() => onToggleFile?.(file)}
             onContextMenu={(event) => onFileContextMenu?.(event, file)}
             className={cn(
               selected
                 ? 'relative cursor-grab active:cursor-grabbing overflow-hidden file-selected shadow-sm transition hover:-translate-y-0.5 hover:shadow-md'
                 : 'relative cursor-grab active:cursor-grabbing overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md',
-              cfg.card
+              cfg.card,
             )}
           >
             <div className="flex items-start justify-between gap-2">
-              <input type="checkbox" className={cn("shrink-0 accent-blue-600", cfg.checkbox)} checked={selected} onChange={() => onToggleFile?.(file)} onClick={(event) => event.stopPropagation()} />
-              <button className={cn("flex shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-white/80", cfg.menuBtn)} onClick={(event) => { event.stopPropagation(); onFileContextMenu?.(event, file) }} aria-label={`Open ${file.name} menu`}><MoreVertical className="h-4 w-4" /></button>
+              <input
+                type="checkbox"
+                className={cn('shrink-0 accent-blue-600', cfg.checkbox)}
+                checked={selected}
+                onChange={() => onToggleFile?.(file)}
+                onClick={(event) => event.stopPropagation()}
+              />
+              <button
+                className={cn(
+                  'flex shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-white/80',
+                  cfg.menuBtn,
+                )}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onFileContextMenu?.(event, file);
+                }}
+                aria-label={`Open ${file.name} menu`}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="flex justify-center mt-2">
-              <div className={cn("flex items-center justify-center rounded-2xl bg-slate-100 text-slate-700", cfg.iconShell)}>
+              <div
+                className={cn(
+                  'flex items-center justify-center rounded-2xl bg-slate-100 text-slate-700',
+                  cfg.iconShell,
+                )}
+              >
                 <FileIcon kind={file.kind} className={cfg.icon} />
               </div>
             </div>
 
-            <div className={cn("min-w-0 text-center", cfg.mtCard)}>
-              <h3 className={cn("font-extrabold text-slate-950 line-clamp-2", cfg.title)} title={file.name}>{file.name}</h3>
+            <div className={cn('min-w-0 text-center', cfg.mtCard)}>
+              <h3
+                className={cn('font-extrabold text-slate-950 line-clamp-2', cfg.title)}
+                title={file.name}
+              >
+                {file.name}
+              </h3>
               <p className={cfg.date}>{file.date}</p>
-              <div className={cn("flex flex-wrap justify-center font-semibold text-slate-600", cfg.tagsShell)}>
-                <span className={cn("rounded-full bg-slate-100", cfg.tag)}>{file.size}</span>
-                <span className={cn("max-w-full truncate rounded-full bg-slate-100", cfg.tag)}>{file.access}</span>
+              <div
+                className={cn(
+                  'flex flex-wrap justify-center font-semibold text-slate-600',
+                  cfg.tagsShell,
+                )}
+              >
+                <span className={cn('rounded-full bg-slate-100', cfg.tag)}>{file.size}</span>
+                <span className={cn('max-w-full truncate rounded-full bg-slate-100', cfg.tag)}>
+                  {file.access}
+                </span>
               </div>
             </div>
           </Card>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

@@ -1,37 +1,59 @@
-import { Copy, Download, Edit3, Eye, FolderInput, Info, Link2, Trash2, UserPlus } from 'lucide-react'
-import type { FileItem } from '@/data/drive-data'
+import {
+  Copy,
+  Download,
+  Edit3,
+  Eye,
+  FolderInput,
+  Info,
+  Link2,
+  Trash2,
+  UserPlus,
+} from 'lucide-react';
+import type { FileItem } from '@/data/drive-data';
 
 type Props = {
-  x: number
-  y: number
-  file: FileItem | null
-  onClose: () => void
-  onView: () => void
-  onDownload: () => void
-  onRename: () => void
-  onMove: () => void
-  onDetails: () => void
-  onShare: () => void
-  onCopyLink: () => void
-  onInvite: () => void
-  onDelete: () => void
-}
+  x: number;
+  y: number;
+  file: FileItem | null;
+  onClose: () => void;
+  onView: () => void;
+  onDownload: () => void;
+  onRename: () => void;
+  onMove: () => void;
+  onDetails: () => void;
+  onShare: () => void;
+  onCopyLink: () => void;
+  onInvite: () => void;
+  onDelete: () => void;
+};
 
 const kindColors: Record<string, string> = {
   image: 'bg-emerald-500',
   video: 'bg-violet-500',
   pdf: 'bg-red-500',
   doc: 'bg-blue-500',
-}
+};
 
 const kindLabels: Record<string, string> = {
   image: 'Image',
   video: 'Video',
   pdf: 'PDF',
   doc: 'Document',
-}
+};
 
-function MenuItem({ icon: Icon, label, onClick, danger = false, kbd }: { icon: React.ElementType; label: string; onClick: () => void; danger?: boolean; kbd?: string }) {
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  danger = false,
+  kbd,
+}: {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  kbd?: string;
+}) {
   return (
     <button
       type="button"
@@ -43,12 +65,14 @@ function MenuItem({ icon: Icon, label, onClick, danger = false, kbd }: { icon: R
           : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/70',
       ].join(' ')}
     >
-      <span className={[
-        'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150',
-        danger
-          ? 'bg-red-50 text-red-500 group-hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400'
-          : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm dark:bg-slate-800 dark:text-slate-400',
-      ].join(' ')}>
+      <span
+        className={[
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150',
+          danger
+            ? 'bg-red-50 text-red-500 group-hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400'
+            : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm dark:bg-slate-800 dark:text-slate-400',
+        ].join(' ')}
+      >
         <Icon className="h-3.5 w-3.5" />
       </span>
       <span className="flex-1 text-left">{label}</span>
@@ -58,23 +82,37 @@ function MenuItem({ icon: Icon, label, onClick, danger = false, kbd }: { icon: R
         </kbd>
       )}
     </button>
-  )
+  );
 }
 
-export function FileContextMenu({ x, y, file, onClose, onView, onDownload, onRename, onMove, onDetails, onShare, onCopyLink, onInvite, onDelete }: Props) {
-  if (!file) return null
+export function FileContextMenu({
+  x,
+  y,
+  file,
+  onClose,
+  onView,
+  onDownload,
+  onRename,
+  onMove,
+  onDetails,
+  onShare,
+  onCopyLink,
+  onInvite,
+  onDelete,
+}: Props) {
+  if (!file) return null;
 
-  const safeX = Math.max(12, Math.min(x, window.innerWidth - 228))
-  const safeY = Math.max(12, Math.min(y, window.innerHeight - 430))
-  const kindColor = kindColors[file.kind] ?? 'bg-slate-500'
-  const kindLabel = kindLabels[file.kind] ?? 'File'
+  const safeX = Math.max(12, Math.min(x, window.innerWidth - 228));
+  const safeY = Math.max(12, Math.min(y, window.innerHeight - 430));
+  const kindColor = kindColors[file.kind] ?? 'bg-slate-500';
+  const kindLabel = kindLabels[file.kind] ?? 'File';
 
   function handleShare() {
-    onShare()
+    onShare();
   }
 
   function handleCopyLink() {
-    onCopyLink()
+    onCopyLink();
   }
 
   return (
@@ -95,11 +133,15 @@ export function FileContextMenu({ x, y, file, onClose, onView, onDownload, onRen
         {/* Header: file name + kind badge + folder path */}
         <div className="border-b border-slate-100 bg-slate-50/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
           <div className="flex items-start gap-2.5">
-            <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black text-white ${kindColor}`}>
+            <span
+              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black text-white ${kindColor}`}
+            >
               {kindLabel.slice(0, 3).toUpperCase()}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-bold leading-tight text-slate-900 dark:text-slate-100">{file.name}</p>
+              <p className="truncate text-[13px] font-bold leading-tight text-slate-900 dark:text-slate-100">
+                {file.name}
+              </p>
               <div className="mt-1 flex flex-wrap items-center gap-1">
                 <span className="rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400">
                   {file.size}
@@ -140,5 +182,5 @@ export function FileContextMenu({ x, y, file, onClose, onView, onDownload, onRen
         </div>
       </div>
     </>
-  )
+  );
 }

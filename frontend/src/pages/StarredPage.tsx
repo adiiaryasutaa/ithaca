@@ -1,11 +1,11 @@
-import { FileText, Star } from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { FileTable } from '@/components/drive/FileTable'
-import { MetricCard } from '@/components/drive/MetricCard'
-import { PageHeader } from '@/components/drive/PageHeader'
-import { files } from '@/data/drive-data'
+import { FileText, Star } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { FileTable } from '@/components/drive/FileTable';
+import { MetricCard } from '@/components/drive/MetricCard';
+import { PageHeader } from '@/components/drive/PageHeader';
+import { files } from '@/data/drive-data';
 
-const starred = files.filter((file) => file.starredDate)
+const starred = files.filter((file) => file.starredDate);
 
 export function StarredPage() {
   return (
@@ -27,5 +27,5 @@ export function StarredPage() {
       </div>
       <FileTable files={starred} mode="starred" />
     </>
-  )
+  );
 }

@@ -1,19 +1,31 @@
-import { Copy, Edit3, FolderOpen, Scissors, Trash2, UserPlus } from 'lucide-react'
-import type { FolderItem } from '@/data/drive-data'
+import { Copy, Edit3, FolderOpen, Scissors, Trash2, UserPlus } from 'lucide-react';
+import type { FolderItem } from '@/data/drive-data';
 
 type Props = {
-  x: number
-  y: number
-  folder: FolderItem | null
-  onClose: () => void
-  onCut: () => void
-  onRename: () => void
-  onInvite: () => void
-  onCopyLink: () => void
-  onDelete: () => void
-}
+  x: number;
+  y: number;
+  folder: FolderItem | null;
+  onClose: () => void;
+  onCut: () => void;
+  onRename: () => void;
+  onInvite: () => void;
+  onCopyLink: () => void;
+  onDelete: () => void;
+};
 
-function MenuItem({ icon: Icon, label, onClick, danger = false, kbd }: { icon: React.ElementType; label: string; onClick: () => void; danger?: boolean; kbd?: string }) {
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  danger = false,
+  kbd,
+}: {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  kbd?: string;
+}) {
   return (
     <button
       type="button"
@@ -25,12 +37,14 @@ function MenuItem({ icon: Icon, label, onClick, danger = false, kbd }: { icon: R
           : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/70',
       ].join(' ')}
     >
-      <span className={[
-        'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150',
-        danger
-          ? 'bg-red-50 text-red-500 group-hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400'
-          : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm dark:bg-slate-800 dark:text-slate-400',
-      ].join(' ')}>
+      <span
+        className={[
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150',
+          danger
+            ? 'bg-red-50 text-red-500 group-hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400'
+            : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm dark:bg-slate-800 dark:text-slate-400',
+        ].join(' ')}
+      >
         <Icon className="h-3.5 w-3.5" />
       </span>
       <span className="flex-1 text-left">{label}</span>
@@ -40,13 +54,23 @@ function MenuItem({ icon: Icon, label, onClick, danger = false, kbd }: { icon: R
         </kbd>
       )}
     </button>
-  )
+  );
 }
 
-export function FolderContextMenu({ x, y, folder, onClose, onCut, onRename, onInvite, onCopyLink, onDelete }: Props) {
-  if (!folder) return null
-  const safeX = Math.max(12, Math.min(x, window.innerWidth - 228))
-  const safeY = Math.max(12, Math.min(y, window.innerHeight - 280))
+export function FolderContextMenu({
+  x,
+  y,
+  folder,
+  onClose,
+  onCut,
+  onRename,
+  onInvite,
+  onCopyLink,
+  onDelete,
+}: Props) {
+  if (!folder) return null;
+  const safeX = Math.max(12, Math.min(x, window.innerWidth - 228));
+  const safeY = Math.max(12, Math.min(y, window.innerHeight - 280));
 
   return (
     <>
@@ -70,8 +94,12 @@ export function FolderContextMenu({ x, y, folder, onClose, onCut, onRename, onIn
               <FolderOpen className="h-3.5 w-3.5 text-amber-500" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-bold leading-tight text-slate-900 dark:text-slate-100">{folder.name}</p>
-              <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Virtual folder</p>
+              <p className="truncate text-[13px] font-bold leading-tight text-slate-900 dark:text-slate-100">
+                {folder.name}
+              </p>
+              <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                Virtual folder
+              </p>
             </div>
           </div>
         </div>
@@ -87,5 +115,5 @@ export function FolderContextMenu({ x, y, folder, onClose, onCut, onRename, onIn
         </div>
       </div>
     </>
-  )
+  );
 }

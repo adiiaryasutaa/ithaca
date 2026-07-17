@@ -1,15 +1,15 @@
-![9Drive cover](https://i.ibb.co.com/35BySv1C/image.png)
+![Ithaca cover](https://i.ibb.co.com/35BySv1C/image.png)
 
-# 9Drive
+# Ithaca
 
-9Drive is a storage gateway web app for connecting multiple Google Drive accounts into one virtual storage dashboard. Users can register with email/password or Google, automatically connect their first Google Drive account during Google sign-in, track quota, upload files into a dedicated `9drive` Drive folder, organize files with virtual folders, preview files, sync MySQL from Google Drive, and let the backend route uploads to the Drive account with enough free space.
+Ithaca is a storage gateway web app for connecting multiple Google Drive accounts into one virtual storage dashboard. Users can register with email/password or Google, automatically connect their first Google Drive account during Google sign-in, track quota, upload files into a dedicated `Ithaca` Drive folder, organize files with virtual folders, preview files, sync MySQL from Google Drive, and let the backend route uploads to the Drive account with enough free space.
 
 ## Features
 
 - Google Drive and S3-compatible storage gateway in one virtual storage dashboard.
 - S3-compatible storage support with custom endpoints for providers like MinIO, Cloudflare R2, Wasabi, Backblaze B2, and AWS S3.
 - Direct upload stream to Google Drive. Files are not stored on the server.
-- Google Drive uploads are stored under a root `9drive` folder.
+- Google Drive uploads are stored under a root `Ithaca` folder.
 - Direct upload stream to S3-compatible storage through the backend without exposing storage credentials to the frontend.
 - Upload routing policies with most-available, round-robin, and priority-order modes.
 - External upload API using API keys at `POST /api/v1/uploads`.
@@ -17,7 +17,7 @@
 - Email/password auth plus Google sign-in/register with automatic first Drive connection.
 - Multi-account storage quota summary.
 - Quota tracker page.
-- Manual sync from the Google Drive `9drive` folder back into MySQL.
+- Manual sync from the Google Drive `Ithaca` folder back into MySQL.
 - Virtual folders.
 - File preview, download, rename, move, and delete actions.
 - In-app API documentation with cURL and JavaScript upload examples.
@@ -34,9 +34,9 @@
 
 Live preview: https://9drive.zenhosta.com
 
-![9Drive dashboard preview](https://i.ibb.co.com/HLjG3JRf/image.png)
+![Ithaca dashboard preview](https://i.ibb.co.com/HLjG3JRf/image.png)
 
-![9Drive shared file preview](https://i.ibb.co.com/QLpYGmx/image.png)
+![Ithaca shared file preview](https://i.ibb.co.com/QLpYGmx/image.png)
 
 ## Star History
 
@@ -62,7 +62,7 @@ Default database used by this project:
 ```txt
 host: localhost
 port: 3306
-database: 9drive
+database: ithaca
 user: root
 password: empty
 ```
@@ -72,14 +72,14 @@ password: empty
 The easiest way to set up and run the project is using the automated setup script. It automatically generates all environment files with secure keys, installs dependencies, handles Prisma migrations, and configures either **SQLite** (zero installation/config) or **MySQL**.
 
 ### Windows (PowerShell)
-Make sure to open PowerShell and navigate to the project directory first. For example, if you cloned the project to `E:\AUTO KLIK\9Drive`:
+Make sure to open PowerShell and navigate to the project directory first. For example, if you cloned the project to `E:\AUTO KLIK\Ithaca`:
 
 ```powershell
 # 1. Switch to the drive where the project is located (if necessary)
 E:
 
 # 2. Navigate to the project folder
-cd "E:\AUTO KLIK\9Drive"
+cd "E:\AUTO KLIK\Ithaca"
 
 # 3. Run the automated setup script
 powershell -ExecutionPolicy Bypass -File .\setup.ps1
@@ -119,11 +119,11 @@ npm install
 ### 2.2 Create Database (For MySQL)
 Create a database:
 ```sql
-CREATE DATABASE 9drive;
+CREATE DATABASE ithaca;
 ```
 If using MySQL CLI:
 ```bash
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS 9drive;"
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS ithaca;"
 ```
 
 ### 2.3 Environment Setup
@@ -132,7 +132,7 @@ mysql -u root -e "CREATE DATABASE IF NOT EXISTS 9drive;"
 Create `backend/.env`:
 
 ```env
-DATABASE_URL="mysql://root@localhost:3306/9drive"
+DATABASE_URL="mysql://root@localhost:3306/ithaca"
 APP_PORT=4000
 FRONTEND_URL="http://localhost:5173"
 JWT_ACCESS_SECRET="change-this-jwt-secret-at-least-32-chars"
@@ -257,7 +257,7 @@ https://www.googleapis.com/auth/userinfo.email
 https://www.googleapis.com/auth/userinfo.profile
 ```
 
-Full Drive access is required so Google sign-in can connect the first Drive account automatically and sync files manually added to the `9drive` folder.
+Full Drive access is required so Google sign-in can connect the first Drive account automatically and sync files manually added to the `Ithaca` folder.
 
 5. If publishing status is `Testing`, add test users.
 
@@ -393,7 +393,7 @@ Edit `.env`:
 
 ```env
 MYSQL_ROOT_PASSWORD=root
-MYSQL_DATABASE=9drive
+MYSQL_DATABASE=ithaca
 
 FRONTEND_URL=http://localhost:5173
 VITE_API_URL=http://localhost:4000
@@ -481,7 +481,7 @@ docker compose down -v
 
 ### VPS Deployment (Step-by-Step)
 
-Follow these steps to deploy 9Drive to a VPS (such as Ubuntu/Debian) using Docker:
+Follow these steps to deploy Ithaca to a VPS (such as Ubuntu/Debian) using Docker:
 
 #### 1. Install Docker & Docker Compose on your VPS
 ```bash
@@ -492,8 +492,8 @@ sudo systemctl enable --now docker
 
 #### 2. Clone the Repository
 ```bash
-git clone https://github.com/your-github-username/9drive.git
-cd 9drive
+git clone https://github.com/your-github-username/ithaca.git
+cd ithaca
 ```
 
 #### 3. Setup the Production Environment
@@ -502,8 +502,8 @@ Copy the example environment file to `.env`:
 cp .env.docker.example .env
 ```
 Edit the `.env` file (e.g., `nano .env`) and configure the values for your production VPS domain/IP:
-* **`FRONTEND_URL`**: Set to your public domain or VPS IP (e.g., `http://103.xxx.xxx.xxx:5173` or `https://9drive.yourdomain.com`).
-* **`VITE_API_URL`**: Set to your public backend URL (e.g., `http://103.xxx.xxx.xxx:4000` or `https://api.9drive.yourdomain.com`).
+* **`FRONTEND_URL`**: Set to your public domain or VPS IP (e.g., `http://103.xxx.xxx.xxx:5173` or `https://ithaca.yourdomain.com`).
+* **`VITE_API_URL`**: Set to your public backend URL (e.g., `http://103.xxx.xxx.xxx:4000` or `https://api.ithaca.yourdomain.com`).
 * **`GOOGLE_REDIRECT_URI`**: Set to your public redirect callback URL (e.g., `http://103.xxx.xxx.xxx:4000/connected-accounts/google/callback`).
 * Set secure credentials for **`JWT_ACCESS_SECRET`** and **`TOKEN_ENCRYPTION_KEY`** (encryption key must be exactly 32 characters/bytes).
 * Add your **`GOOGLE_CLIENT_ID`** and **`GOOGLE_CLIENT_SECRET`**.
@@ -523,8 +523,8 @@ docker compose exec backend npm run seed:google-config
 #### 6. Add Authorized URIs in Google Cloud Console
 1. Go to **APIs & Services** -> **Credentials** in the Google Cloud Console.
 2. Edit your OAuth 2.0 Web Client.
-3. In **Authorized JavaScript origins**, add your frontend URL (e.g., `http://your-vps-ip:5173` or `https://9drive.yourdomain.com`).
-4. In **Authorized redirect URIs**, add your redirect URI (e.g., `http://your-vps-ip:4000/connected-accounts/google/callback` or `https://api.9drive.yourdomain.com/connected-accounts/google/callback`).
+3. In **Authorized JavaScript origins**, add your frontend URL (e.g., `http://your-vps-ip:5173` or `https://ithaca.yourdomain.com`).
+4. In **Authorized redirect URIs**, add your redirect URI (e.g., `http://your-vps-ip:4000/connected-accounts/google/callback` or `https://api.ithaca.yourdomain.com/connected-accounts/google/callback`).
 5. Save changes.
 
 ### Non-Docker Production Startup
@@ -561,8 +561,8 @@ http://localhost:5173
 6. Confirm quota appears.
 7. Open `All Files`.
 8. Create nested virtual folders.
-9. Upload a file and confirm it appears under Google Drive root folder `9drive`.
-10. Add or remove a file manually inside Google Drive folder `9drive`, then click `Sync Drive` in All Files.
+9. Upload a file and confirm it appears under Google Drive root folder `Ithaca`.
+10. Add or remove a file manually inside Google Drive folder `Ithaca`, then click `Sync Drive` in All Files.
 11. Watch bottom-right upload progress.
 12. Right-click file row for actions:
 
@@ -654,7 +654,7 @@ file
 ## Security Notes
 
 - Backend never stores uploaded files on disk.
-- Uploads are streamed through the backend to Google Drive folder `9drive`.
+- Uploads are streamed through the backend to Google Drive folder `Ithaca`.
 - Google tokens are encrypted in MySQL.
 - Refresh tokens for app sessions are hashed in MySQL.
 - Google auth handoff tokens, public share tokens, and preview tokens are hashed before lookup/use.
@@ -683,7 +683,7 @@ The config is automatically encrypted and saved into the database, enabling Goog
 
 ## Automated Updates & PM2 Management
 
-For native VPS setups running with PM2, 9Drive includes a fully automated system update trigger and log monitor in the **Settings** UI.
+For native VPS setups running with PM2, Ithaca includes a fully automated system update trigger and log monitor in the **Settings** UI.
 
 ### How it works
 1. When you trigger an update from the frontend dashboard, the backend triggers the `update.sh` script in the background.
@@ -691,7 +691,7 @@ For native VPS setups running with PM2, 9Drive includes a fully automated system
    - Resets any local Git conflicts (`git reset --hard`) and pulls the latest changes.
    - Installs dependencies and builds both backend and frontend.
    - Deploys Prisma database migrations.
-   - Restarts the backend process using PM2 (`pm2 restart 9drive-backend`).
+   - Restarts the backend process using PM2 (`pm2 restart ithaca-backend`).
 3. You can monitor the real-time rebuild progress using the log viewer inside the Settings UI.
 
 ### Manual update command
@@ -705,7 +705,7 @@ git reset --hard
 git pull origin main
 cd backend && npm install && npx prisma generate && npm run build && npx prisma migrate deploy
 cd ../frontend && npm install && npm run build
-pm2 restart 9drive-backend
+pm2 restart ithaca-backend
 ```
 
 ## Build

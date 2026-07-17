@@ -10,5 +10,5 @@ export function AvatarStack({ count }: { count: number }) {
         />
       ))}
     </div>
-  )
+  );
 }

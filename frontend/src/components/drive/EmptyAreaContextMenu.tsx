@@ -1,17 +1,27 @@
-import { ClipboardPaste, FolderPlus, Upload } from 'lucide-react'
+import { ClipboardPaste, FolderPlus, Upload } from 'lucide-react';
 
 type Props = {
-  x: number
-  y: number
-  open: boolean
-  canPasteFolder?: boolean
-  onClose: () => void
-  onUpload: () => void
-  onCreateFolder: () => void
-  onPasteFolder?: () => void
-}
+  x: number;
+  y: number;
+  open: boolean;
+  canPasteFolder?: boolean;
+  onClose: () => void;
+  onUpload: () => void;
+  onCreateFolder: () => void;
+  onPasteFolder?: () => void;
+};
 
-function MenuItem({ icon: Icon, label, onClick, accent = false }: { icon: React.ElementType; label: string; onClick: () => void; accent?: boolean }) {
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  accent = false,
+}: {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  accent?: boolean;
+}) {
   return (
     <button
       type="button"
@@ -23,23 +33,34 @@ function MenuItem({ icon: Icon, label, onClick, accent = false }: { icon: React.
           : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/70',
       ].join(' ')}
     >
-      <span className={[
-        'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150',
-        accent
-          ? 'bg-blue-50 text-blue-500 group-hover:bg-blue-100 dark:bg-blue-950/30'
-          : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm dark:bg-slate-800 dark:text-slate-400',
-      ].join(' ')}>
+      <span
+        className={[
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150',
+          accent
+            ? 'bg-blue-50 text-blue-500 group-hover:bg-blue-100 dark:bg-blue-950/30'
+            : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm dark:bg-slate-800 dark:text-slate-400',
+        ].join(' ')}
+      >
         <Icon className="h-3.5 w-3.5" />
       </span>
       <span className="flex-1 text-left">{label}</span>
     </button>
-  )
+  );
 }
 
-export function EmptyAreaContextMenu({ x, y, open, canPasteFolder = false, onClose, onUpload, onCreateFolder, onPasteFolder }: Props) {
-  if (!open) return null
-  const safeX = Math.max(12, Math.min(x, window.innerWidth - 228))
-  const safeY = Math.max(12, Math.min(y, window.innerHeight - 160))
+export function EmptyAreaContextMenu({
+  x,
+  y,
+  open,
+  canPasteFolder = false,
+  onClose,
+  onUpload,
+  onCreateFolder,
+  onPasteFolder,
+}: Props) {
+  if (!open) return null;
+  const safeX = Math.max(12, Math.min(x, window.innerWidth - 228));
+  const safeY = Math.max(12, Math.min(y, window.innerHeight - 160));
 
   return (
     <>
@@ -68,5 +89,5 @@ export function EmptyAreaContextMenu({ x, y, open, canPasteFolder = false, onClo
         </div>
       </div>
     </>
-  )
+  );
 }
