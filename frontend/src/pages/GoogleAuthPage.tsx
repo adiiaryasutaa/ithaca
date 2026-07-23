@@ -37,13 +37,13 @@ export function GoogleAuthPage() {
   }, [navigate, status, token]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5">
+    <main className="flex min-h-screen items-center justify-center bg-muted p-5">
       <Card className="w-full max-w-sm p-6 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-sm bg-primary text-white">
           <HardDrive className="h-6 w-6" />
         </div>
         <h1 className="mt-4 text-xl font-extrabold">Google Sign-in</h1>
-        <p className="mt-2 text-sm text-slate-500">{message}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
       </Card>
     </main>
   );

@@ -79,13 +79,13 @@ export function ActivityLogPage() {
     }
     if (act.includes('DOWNLOAD')) {
       return {
-        bg: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+        bg: 'bg-primary/10 text-primary border-ring/20',
         icon: Download,
         label: action.replace(/_/g, ' '),
       };
     }
     return {
-      bg: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
+      bg: 'bg-foreground/10 text-muted-foreground border-foreground/20',
       icon: History,
       label: action.replace(/_/g, ' '),
     };
@@ -98,12 +98,12 @@ export function ActivityLogPage() {
       try {
         parsed = JSON.parse(metadata);
       } catch {
-        return <span className="text-slate-500">{metadata}</span>;
+        return <span className="text-muted-foreground">{metadata}</span>;
       }
     }
 
     if (typeof parsed !== 'object') {
-      return <span className="text-slate-500">{String(parsed)}</span>;
+      return <span className="text-muted-foreground">{String(parsed)}</span>;
     }
 
     // Special metadata keys rendering
@@ -118,10 +118,12 @@ export function ActivityLogPage() {
     }
 
     if (parts.length > 0) {
-      return <span className="text-xs text-slate-500 font-medium">{parts.join(' | ')}</span>;
+      return <span className="text-xs text-muted-foreground font-medium">{parts.join(' | ')}</span>;
     }
 
-    return <span className="text-xs text-slate-500 font-mono">{JSON.stringify(parsed)}</span>;
+    return (
+      <span className="text-xs text-muted-foreground font-mono">{JSON.stringify(parsed)}</span>
+    );
   }
 
   function formatBytes(bytes: number) {
@@ -140,31 +142,31 @@ export function ActivityLogPage() {
       />
 
       {error && (
-        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+        <div className="mt-6 flex items-center gap-3 rounded-sm border border-destructive/20 bg-destructive/10 p-4 text-destructive">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-semibold">{error}</p>
         </div>
       )}
 
-      <Card className="mt-8 overflow-hidden border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
-        <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <History className="h-5 w-5 text-slate-500" />
+      <Card className="mt-8 overflow-hidden border border-border bg-card shadow-xl shadow-slate-900/5">
+        <div className="border-b border-border bg-muted px-6 py-4">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <History className="h-5 w-5 text-muted-foreground" />
             Recent Activity Trail
           </h2>
         </div>
 
         <div className="divide-y divide-slate-100">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-              <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mb-2" />
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary mb-2" />
               <p className="text-sm">Loading activity logs...</p>
             </div>
           ) : logs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-              <History className="h-12 w-12 stroke-[1.5] mb-3 text-slate-300" />
-              <p className="font-semibold text-slate-600">No activity yet</p>
-              <p className="text-sm text-slate-400 mt-1">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <History className="h-12 w-12 stroke-[1.5] mb-3 text-muted-foreground" />
+              <p className="font-semibold text-muted-foreground">No activity yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
                 Actions you perform on your folders and files will appear here.
               </p>
             </div>
@@ -176,12 +178,12 @@ export function ActivityLogPage() {
               return (
                 <div
                   key={log.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 hover:bg-slate-50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 transition-colors"
                 >
                   <div className="flex items-start gap-4">
                     <div
                       className={cn(
-                        'flex h-9 w-9 items-center justify-center rounded-xl border font-bold shrink-0',
+                        'flex h-9 w-9 items-center justify-center rounded-sm border font-bold shrink-0',
                         badge.bg,
                       )}
                     >
@@ -189,10 +191,10 @@ export function ActivityLogPage() {
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 uppercase tracking-wider text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50">
+                        <span className="text-sm font-bold text-foreground uppercase tracking-wider text-[11px] px-2 py-0.5 rounded-full border border-border bg-muted">
                           {badge.label}
                         </span>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <EntityIcon className="h-3.5 w-3.5" />
                           <span>{log.entityType}</span>
                         </div>
@@ -203,7 +205,7 @@ export function ActivityLogPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-slate-400 self-end sm:self-center">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground self-end sm:self-center">
                     <Clock className="h-3.5 w-3.5" />
                     <span>{formatDate(log.createdAt)}</span>
                   </div>

@@ -19,7 +19,7 @@ export function GoogleConnectedPage() {
   }, [navigate, status]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5">
+    <main className="flex min-h-screen items-center justify-center bg-muted p-5">
       <Card className="w-full max-w-sm p-6 text-center">
         {ok ? (
           <CheckCircle className="mx-auto h-10 w-10 text-emerald-500" />
@@ -29,7 +29,7 @@ export function GoogleConnectedPage() {
         <h1 className="mt-4 text-xl font-extrabold">
           {ok ? 'Google Drive Connected' : 'Connection Failed'}
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           {ok ? 'This window will close automatically.' : 'Close this window and try again.'}
         </p>
       </Card>

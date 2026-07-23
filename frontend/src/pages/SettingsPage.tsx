@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, type FormEvent } from 'react';
 import { Bell, Cloud, Database, Globe, HardDrive, Link2, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import { DummyModal } from '@/components/drive/DummyModal';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { apiFetch, formatBytes, API_URL } from '@/lib/api';
@@ -440,27 +441,27 @@ export function SettingsPage() {
         }
       />
       {message ? (
-        <p className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{message}</p>
+        <p className="mt-4 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
       ) : null}
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_280px]">
         <div className="grid gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-3.5">
               {!profileImageUrl || avatarError ? (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white shadow-sm border border-blue-400/20 sm:h-14 sm:w-14">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white shadow-sm border border-blue-400/20 sm:h-14 sm:w-14">
                   {(user?.name ?? user?.email ?? 'U').trim().charAt(0).toUpperCase()}
                 </div>
               ) : (
                 <img
                   src={profileImageUrl}
                   alt="User avatar"
-                  className="h-12 w-12 rounded-xl object-cover sm:h-14 sm:w-14"
+                  className="h-12 w-12 rounded-sm object-cover sm:h-14 sm:w-14"
                   onError={() => setAvatarError(true)}
                 />
               )}
               <div className="flex-1">
                 <h2 className="text-lg font-bold">{user?.name ?? 'User'}</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{user?.email ?? '-'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{user?.email ?? '-'}</p>
               </div>
             </div>
           </Card>
@@ -469,10 +470,10 @@ export function SettingsPage() {
             <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <Cloud className="h-5 w-5 text-blue-600" />
+                  <Cloud className="h-5 w-5 text-primary" />
                   <h2 className="text-[16px] font-bold">Google Drive</h2>
                 </div>
-                <p className="mt-1 text-[13px] text-slate-500">
+                <p className="mt-1 text-[13px] text-muted-foreground">
                   Connect one or more Google Drive accounts. Ithaca will route uploads to account
                   with enough space.
                 </p>
@@ -493,10 +494,10 @@ export function SettingsPage() {
             <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <Database className="h-5 w-5 text-blue-600" />
+                  <Database className="h-5 w-5 text-primary" />
                   <h2 className="text-[16px] font-bold">S3 Compatible</h2>
                 </div>
-                <p className="mt-1 text-[13px] text-slate-500">
+                <p className="mt-1 text-[13px] text-muted-foreground">
                   Connect AWS S3, Cloudflare R2, MinIO, Wasabi, Backblaze B2, or custom endpoint
                   storage.
                 </p>
@@ -517,32 +518,29 @@ export function SettingsPage() {
             <h2 className="text-[16px] font-bold">Connected Storage Accounts</h2>
             <div className="mt-3.5 grid gap-3">
               {accounts.length === 0 ? (
-                <p className="text-xs text-slate-500">No connected storage account yet.</p>
+                <p className="text-xs text-muted-foreground">No connected storage account yet.</p>
               ) : (
                 <>
-                  <label className="grid gap-1.5 text-xs font-semibold text-slate-500">
+                  <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
                     Choose Account
-                    <select
-                      className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:outline-none"
+                    <Combobox
+                      className="h-10"
                       value={selectedAccount?.id ?? ''}
-                      onChange={(event) => setSelectedAccountId(event.target.value)}
-                    >
-                      {accounts.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {providerLabel(account.provider)} - {account.displayName || account.email}{' '}
-                          ({account.status})
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(id) => setSelectedAccountId(id)}
+                      options={accounts.map((account) => ({
+                        value: account.id,
+                        label: `${providerLabel(account.provider)} - ${account.displayName || account.email} (${account.status})`,
+                      }))}
+                    />
                   </label>
                   {selectedAccount ? (
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                    <div className="rounded-sm bg-muted p-3 dark:bg-slate-900 border border-border dark:border-slate-800">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                           <p className="break-all font-semibold text-sm">
                             {selectedAccount.displayName || selectedAccount.email}
                           </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {providerLabel(selectedAccount.provider)} · {selectedAccount.status}
                           </p>
                         </div>
@@ -566,7 +564,7 @@ export function SettingsPage() {
                           <Button
                             className="w-full"
                             size="sm"
-                            variant="danger"
+                            variant="destructive"
                             onClick={() => setAccountToDisconnect(selectedAccount)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -575,23 +573,23 @@ export function SettingsPage() {
                         </div>
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="rounded-xl bg-white dark:bg-slate-950 p-2 border border-slate-100 dark:border-slate-800">
-                          <p className="font-extrabold text-slate-950">
+                        <div className="rounded-sm bg-card dark:bg-slate-950 p-2 border border-border dark:border-slate-800">
+                          <p className="font-extrabold text-foreground">
                             {formatBytes(selectedAccount.storageAccount?.usedBytes)}
                           </p>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Used</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Used</p>
                         </div>
-                        <div className="rounded-xl bg-white dark:bg-slate-950 p-2 border border-slate-100 dark:border-slate-800">
-                          <p className="font-extrabold text-slate-950">
+                        <div className="rounded-sm bg-card dark:bg-slate-950 p-2 border border-border dark:border-slate-800">
+                          <p className="font-extrabold text-foreground">
                             {storageLimitLabel(selectedAccount)}
                           </p>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Total</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Total</p>
                         </div>
-                        <div className="rounded-xl bg-white dark:bg-slate-950 p-2 border border-slate-100 dark:border-slate-800">
-                          <p className="font-extrabold text-slate-950">
+                        <div className="rounded-sm bg-card dark:bg-slate-950 p-2 border border-border dark:border-slate-800">
+                          <p className="font-extrabold text-foreground">
                             {availableLabel(selectedAccount)}
                           </p>
-                          <p className="mt-0.5 text-[10px] text-slate-500">Free</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Free</p>
                         </div>
                       </div>
                     </div>
@@ -602,9 +600,9 @@ export function SettingsPage() {
           </Card>
 
           <Card className="p-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+            <div className="flex items-center justify-between border-b border-border dark:border-slate-800 pb-3 mb-4">
               <div className="flex items-center gap-2.5">
-                <Cloud className="h-5 w-5 text-blue-600" />
+                <Cloud className="h-5 w-5 text-primary" />
                 <h2 className="text-[17px] font-bold">Google OAuth Credentials</h2>
               </div>
               <Button
@@ -619,7 +617,7 @@ export function SettingsPage() {
             </div>
 
             {showGoogleHelp && (
-              <div className="mb-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-3.5 text-[13px] leading-relaxed text-slate-600 border border-slate-100 dark:border-slate-800">
+              <div className="mb-4 rounded-sm bg-muted dark:bg-slate-900 p-3.5 text-[13px] leading-relaxed text-muted-foreground border border-border dark:border-slate-800">
                 <p className="font-bold text-slate-800 dark:text-slate-200 mb-1.5">
                   How to setup Google credentials:
                 </p>
@@ -630,7 +628,7 @@ export function SettingsPage() {
                       href="https://console.cloud.google.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       Google Cloud Console
                     </a>
@@ -648,7 +646,7 @@ export function SettingsPage() {
                   </li>
                   <li>
                     Add this exact URL under <strong>Authorized redirect URIs</strong>:
-                    <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] bg-white dark:bg-slate-950 p-1.5 rounded border border-slate-200 dark:border-slate-800 select-all overflow-x-auto">
+                    <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] bg-card dark:bg-slate-950 p-1.5 rounded-sm border border-border dark:border-slate-800 select-all overflow-x-auto">
                       {googleRedirectUri || defaultRedirectUri}
                     </div>
                   </li>
@@ -661,10 +659,10 @@ export function SettingsPage() {
             )}
 
             <form onSubmit={saveGoogleConfig} className="grid gap-3.5">
-              <label className="grid gap-1.5 text-xs font-bold text-slate-500">
+              <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
                 Client ID
                 <input
-                  className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm focus:border-blue-600 focus:outline-none"
+                  className="h-10 rounded-sm border border-border dark:border-slate-800 bg-card dark:bg-slate-950 px-3 text-sm focus:border-ring focus:outline-none"
                   placeholder="Enter Google Client ID"
                   value={googleClientId}
                   onChange={(e) => setGoogleClientId(e.target.value)}
@@ -672,13 +670,13 @@ export function SettingsPage() {
                 />
               </label>
 
-              <label className="grid gap-1.5 text-xs font-bold text-slate-500">
+              <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
                 Client Secret{' '}
                 {hasSecret && (
                   <span className="font-normal text-emerald-600">(Already Configured)</span>
                 )}
                 <input
-                  className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm focus:border-blue-600 focus:outline-none"
+                  className="h-10 rounded-sm border border-border dark:border-slate-800 bg-card dark:bg-slate-950 px-3 text-sm focus:border-ring focus:outline-none"
                   type="password"
                   placeholder={
                     hasSecret ? '••••••••••••••••••••••••' : 'Enter Google Client Secret'
@@ -689,10 +687,10 @@ export function SettingsPage() {
                 />
               </label>
 
-              <label className="grid gap-1.5 text-xs font-bold text-slate-500">
+              <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
                 Redirect URI (Optional)
                 <input
-                  className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm focus:border-blue-600 focus:outline-none"
+                  className="h-10 rounded-sm border border-border dark:border-slate-800 bg-card dark:bg-slate-950 px-3 text-sm focus:border-ring focus:outline-none"
                   placeholder={defaultRedirectUri}
                   value={googleRedirectUri}
                   onChange={(e) => setGoogleRedirectUri(e.target.value)}
@@ -711,10 +709,10 @@ export function SettingsPage() {
             <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <RefreshCw className="h-5 w-5 text-blue-600" />
+                  <RefreshCw className="h-5 w-5 text-primary" />
                   <h2 className="text-[16px] font-bold">System Update</h2>
                 </div>
-                <p className="mt-1 text-[13px] text-slate-500">
+                <p className="mt-1 text-[13px] text-muted-foreground">
                   Pull the latest code from GitHub. Dev servers will automatically restart.
                 </p>
               </div>
@@ -733,35 +731,35 @@ export function SettingsPage() {
 
           <Card className="overflow-hidden p-3.5">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-border dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <Database className="h-5 w-5 text-blue-600" />
+                  <Database className="h-5 w-5 text-primary" />
                   <h2 className="text-[16px] font-bold">Backup & Restore Database</h2>
                 </div>
-                <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                   SQLite Local Database
                 </span>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 {/* Download Backup Section (Translucent Green Glass) */}
-                <div className="rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                <div className="rounded-sm bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 hover:border-emerald-500/40 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
                   <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <div className="h-10 w-10 shrink-0 rounded-sm bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                       <HardDrive className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      <h3 className="text-sm font-bold text-foreground dark:text-slate-100">
                         Download Database Backup
                       </h3>
-                      <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
+                      <p className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground leading-normal">
                         Save a copy of your active database containing accounts, virtual folders,
                         file metadata, and configurations.
                       </p>
                     </div>
                   </div>
                   <button
-                    className="mt-5 w-full h-11 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 border-0 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+                    className="mt-5 w-full h-11 rounded-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 border-0 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
                     onClick={downloadBackup}
                     disabled={downloadingBackup}
                     style={{ color: '#ffffff' }}
@@ -774,16 +772,16 @@ export function SettingsPage() {
                 </div>
 
                 {/* Restore Backup Section (Translucent Orange Glass) */}
-                <div className="rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 hover:border-amber-500/40 hover:bg-amber-500/10 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                <div className="rounded-sm bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 hover:border-amber-500/40 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
                   <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 shrink-0 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <div className="h-10 w-10 shrink-0 rounded-sm bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                       <RefreshCw className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      <h3 className="text-sm font-bold text-foreground dark:text-slate-100">
                         Restore Database Backup
                       </h3>
-                      <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
+                      <p className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground leading-normal">
                         Upload a previously downloaded Ithaca backup file to replace the active
                         database.
                       </p>
@@ -795,11 +793,11 @@ export function SettingsPage() {
                       type="file"
                       accept=".db"
                       onChange={handleRestoreFileChange}
-                      className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-extrabold file:bg-amber-500/15 file:text-amber-700 dark:file:text-amber-300 hover:file:bg-amber-500/20 cursor-pointer border border-amber-500/20 dark:border-amber-500/30 rounded-xl p-1 bg-amber-500/5"
+                      className="block w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border-0 file:text-[11px] file:font-extrabold file:bg-amber-500/15 file:text-amber-700 dark:file:text-amber-300 hover:file:bg-amber-500/20 cursor-pointer border border-amber-500/20 dark:border-amber-500/30 rounded-sm p-1 bg-amber-500/5"
                     />
                     {restoreFile ? (
                       <button
-                        className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold shadow-md shadow-amber-500/10 hover:shadow-amber-500/20 border-0 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full h-11 rounded-sm bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold shadow-md shadow-amber-500/10 hover:shadow-amber-500/20 border-0 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
                         onClick={restoreBackup}
                         disabled={restoringBackup}
                         style={{ color: '#ffffff' }}
@@ -814,10 +812,10 @@ export function SettingsPage() {
                       </button>
                     ) : (
                       <button
-                        className="w-full h-11 rounded-xl bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 border border-slate-200/50 dark:border-slate-800/50 cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full h-11 rounded-sm bg-muted dark:bg-slate-800 text-muted-foreground dark:text-muted-foreground border border-border dark:border-slate-800 cursor-not-allowed flex items-center justify-center gap-2"
                         disabled
                       >
-                        <RefreshCw className="h-4 w-4 text-slate-400 dark:text-slate-600" />
+                        <RefreshCw className="h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
                         <span>Restore Backup</span>
                       </button>
                     )}
@@ -829,8 +827,8 @@ export function SettingsPage() {
                 <p
                   className={
                     restoreSuccess
-                      ? 'rounded-xl bg-emerald-50 p-3 text-xs font-semibold mt-1 text-emerald-700'
-                      : 'rounded-xl bg-red-50 p-3 text-xs font-semibold mt-1 text-red-700'
+                      ? 'rounded-sm bg-emerald-500/10 p-3 text-xs font-semibold mt-1 text-emerald-600'
+                      : 'rounded-sm bg-destructive/10 p-3 text-xs font-semibold mt-1 text-destructive'
                   }
                 >
                   {restoreMessage}
@@ -841,19 +839,25 @@ export function SettingsPage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:gap-3">
           <Card className="p-4">
-            <HardDrive className="h-5 w-5 text-blue-600" />
+            <HardDrive className="h-5 w-5 text-primary" />
             <h2 className="mt-2 text-[14px] font-bold">Storage</h2>
-            <p className="mt-1 text-[12px] text-slate-500">Connected accounts: {accounts.length}</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              Connected accounts: {accounts.length}
+            </p>
           </Card>
           <Card className="p-4">
-            <Bell className="h-5 w-5 text-blue-600" />
+            <Bell className="h-5 w-5 text-primary" />
             <h2 className="mt-2 text-[14px] font-bold">Notifications</h2>
-            <p className="mt-1 text-[12px] text-slate-500">Email and app alerts are active.</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              Email and app alerts are active.
+            </p>
           </Card>
           <Card className="p-4">
-            <Globe className="h-5 w-5 text-blue-600" />
+            <Globe className="h-5 w-5 text-primary" />
             <h2 className="mt-2 text-[14px] font-bold">Region</h2>
-            <p className="mt-1 text-[12px] text-slate-500">Workspace region: local gateway.</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              Workspace region: local gateway.
+            </p>
           </Card>
         </div>
       </div>
@@ -865,41 +869,41 @@ export function SettingsPage() {
       >
         <form className="grid gap-4" onSubmit={connectS3}>
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Display name"
             value={s3Form.name}
             onChange={(event) => setS3Form({ ...s3Form, name: event.target.value })}
             required
           />
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Bucket"
             value={s3Form.bucket}
             onChange={(event) => setS3Form({ ...s3Form, bucket: event.target.value })}
             required
           />
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Region"
             value={s3Form.region}
             onChange={(event) => setS3Form({ ...s3Form, region: event.target.value })}
             required
           />
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Endpoint URL (optional)"
             value={s3Form.endpoint}
             onChange={(event) => setS3Form({ ...s3Form, endpoint: event.target.value })}
           />
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Access key ID"
             value={s3Form.accessKeyId}
             onChange={(event) => setS3Form({ ...s3Form, accessKeyId: event.target.value })}
             required
           />
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Secret access key"
             type="password"
             value={s3Form.secretAccessKey}
@@ -907,7 +911,7 @@ export function SettingsPage() {
             required
           />
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Quota bytes (optional)"
             inputMode="numeric"
             value={s3Form.quotaBytes}
@@ -943,8 +947,8 @@ export function SettingsPage() {
         onClose={() => setAccountToDisconnect(null)}
       >
         <div className="grid gap-4">
-          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-            <p className="font-semibold text-slate-950">{accountToDisconnect?.email}</p>
+          <div className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
+            <p className="font-semibold text-foreground">{accountToDisconnect?.email}</p>
             <p className="mt-1">
               Used storage: {formatBytes(accountToDisconnect?.storageAccount?.usedBytes)}
             </p>
@@ -958,7 +962,7 @@ export function SettingsPage() {
               Cancel
             </Button>
             <Button
-              variant="danger"
+              variant="destructive"
               onClick={disconnect}
               disabled={Boolean(disconnectingAccountId)}
             >
@@ -996,11 +1000,11 @@ export function SettingsPage() {
         <div className="grid gap-4">
           <div
             ref={logContainerRef}
-            className="relative rounded-xl bg-slate-950 p-4 font-mono text-xs text-slate-300 leading-relaxed border border-slate-800 h-80 overflow-y-auto select-text"
+            className="relative rounded-sm bg-slate-950 p-4 font-mono text-xs text-muted-foreground leading-relaxed border border-slate-800 h-80 overflow-y-auto select-text"
           >
             <pre className="whitespace-pre-wrap">{updateLog}</pre>
             {!updateFinished && (
-              <div className="mt-3 flex items-center gap-2 text-blue-400">
+              <div className="mt-3 flex items-center gap-2 text-primary">
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                 <span>
                   {reconnectCount > 0

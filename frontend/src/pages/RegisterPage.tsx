@@ -103,15 +103,15 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5">
+    <main className="flex min-h-screen items-center justify-center bg-muted p-5">
       <Card className="w-full max-w-md p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-primary text-white">
             <HardDrive className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-2xl font-extrabold">Register</h1>
-            <p className="text-sm text-slate-500">Create your storage gateway account.</p>
+            <p className="text-sm text-muted-foreground">Create your storage gateway account.</p>
           </div>
         </div>
         <form onSubmit={submit} className="mt-6 grid gap-4">
@@ -134,27 +134,29 @@ export function RegisterPage() {
             />
           </label>
           {recaptchaSiteKey ? (
-            <div className="min-h-[78px] overflow-hidden rounded-xl bg-slate-50 p-2">
+            <div className="min-h-[78px] overflow-hidden rounded-sm bg-muted p-2">
               <div ref={recaptchaRef} />
             </div>
           ) : null}
-          {error ? <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
+          {error ? (
+            <p className="rounded-sm bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+          ) : null}
           <Button disabled={loading}>{loading ? 'Creating...' : 'Create Account'}</Button>
         </form>
         <div className="mt-4 grid gap-3">
-          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" />
+          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-accent" />
             or
-            <span className="h-px flex-1 bg-slate-200" />
+            <span className="h-px flex-1 bg-accent" />
           </div>
           <Button variant="outline" disabled={googleLoading} onClick={continueWithGoogle}>
             <GoogleLogo />
             {googleLoading ? 'Redirecting...' : 'Continue with Google and connect Drive'}
           </Button>
         </div>
-        <p className="mt-5 text-center text-sm text-slate-500">
+        <p className="mt-5 text-center text-sm text-muted-foreground">
           Already registered?{' '}
-          <Link className="font-bold text-blue-600" to="/login">
+          <Link className="font-bold text-primary" to="/login">
             Login
           </Link>
         </p>

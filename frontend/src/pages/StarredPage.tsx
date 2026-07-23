@@ -21,7 +21,7 @@ export function StarredPage() {
           <Card key={file.name} className="p-5">
             <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
             <h2 className="mt-4 font-extrabold">{file.name}</h2>
-            <p className="mt-1 text-sm text-slate-500">Starred on {file.starredDate}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Starred on {file.starredDate}</p>
           </Card>
         ))}
       </div>

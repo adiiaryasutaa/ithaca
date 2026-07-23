@@ -15,7 +15,7 @@ export function PageHeader({
         <h1 className="text-lg font-extrabold tracking-tight sm:text-[22px] lg:text-[28px]">
           {title}
         </h1>
-        {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? (
         <div className="flex flex-wrap gap-2 sm:shrink-0 sm:flex-nowrap sm:justify-end">

@@ -18,7 +18,7 @@ export function ArchivedPage() {
               <RotateCcw className="h-4 w-4" />
               Restore
             </Button>
-            <Button variant="danger">
+            <Button variant="destructive">
               <Trash2 className="h-4 w-4" />
               Delete Permanently
             </Button>

@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   Outlet,
   useOutletContext,
@@ -31,8 +31,10 @@ import {
   CheckCircle,
   ChevronDown,
   Upload,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import { BrandLogo } from '@/components/drive/BrandLogo';
 import { Input } from '@/components/ui/input';
 import { apiFetch, formatBytes } from '@/lib/api';
@@ -71,24 +73,24 @@ function SystemInfoDropdown({ storage }: { storage: any }) {
     ) ?? [];
 
   return (
-    <div className="absolute right-0 top-12 z-50 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15">
-      <div className="border-b border-slate-200 px-4 py-3 bg-slate-50/50">
-        <p className="text-sm font-extrabold text-slate-950">Workspace Status & Info</p>
-        <p className="text-xs text-slate-500">Overview of your connections & guidelines</p>
+    <div className="absolute right-0 top-12 z-50 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-sm border border-border bg-card shadow-2xl shadow-slate-950/15">
+      <div className="border-b border-border px-4 py-3 bg-muted">
+        <p className="text-sm font-extrabold text-foreground">Workspace Status & Info</p>
+        <p className="text-xs text-muted-foreground">Overview of your connections & guidelines</p>
       </div>
       <div className="max-h-96 overflow-y-auto p-4 space-y-4">
         {/* Connection status */}
         <div>
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Connection Status
           </h4>
           <div className="mt-2 space-y-2">
-            <div className="flex items-center justify-between text-xs rounded-xl bg-slate-50 p-2.5 border border-slate-100">
-              <span className="font-semibold text-slate-700">Google Drive accounts</span>
+            <div className="flex items-center justify-between text-xs rounded-sm bg-muted p-2.5 border border-border">
+              <span className="font-semibold text-foreground">Google Drive accounts</span>
               <span
                 className={
                   activeGoogle.length > 0
-                    ? 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-100'
+                    ? 'text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full font-bold border border-emerald-100'
                     : 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold border border-amber-100'
                 }
               >
@@ -96,7 +98,7 @@ function SystemInfoDropdown({ storage }: { storage: any }) {
               </span>
             </div>
             {activeGoogle.map((acc: any) => (
-              <p key={acc.id} className="text-[11px] text-slate-500 truncate px-2.5">
+              <p key={acc.id} className="text-[11px] text-muted-foreground truncate px-2.5">
                 — {acc.email}
               </p>
             ))}
@@ -105,10 +107,10 @@ function SystemInfoDropdown({ storage }: { storage: any }) {
 
         {/* Database & engine status */}
         <div>
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <HardDrive className="h-3.5 w-3.5 text-blue-500" /> Storage Engine
           </h4>
-          <div className="mt-2 text-xs text-slate-600 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+          <div className="mt-2 text-xs text-muted-foreground space-y-1 bg-muted p-2.5 rounded-sm border border-border">
             <p>
               • <b>DB Type:</b> SQLite (Local Database)
             </p>
@@ -123,10 +125,10 @@ function SystemInfoDropdown({ storage }: { storage: any }) {
 
         {/* Tips & Guides */}
         <div>
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Info className="h-3.5 w-3.5 text-indigo-500" /> Usage Tips
           </h4>
-          <ul className="mt-2 text-[11px] text-slate-500 list-disc list-inside space-y-1 pl-1">
+          <ul className="mt-2 text-[11px] text-muted-foreground list-disc list-inside space-y-1 pl-1">
             <li>Virtual folders exist only in your SQLite database.</li>
             <li>Physical files are always uploaded straight to Google Drive.</li>
             <li>Use the Sync button to fetch changes made directly on Drive.</li>
@@ -155,6 +157,8 @@ function Sidebar({
   const progress = total > 0 ? Math.min(100, (used / total) * 100) : 0;
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [avatarError, setAvatarError] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const items = [
     ['Photo', formatBytes(breakdown.photo), 'bg-lime-500'],
     ['Video', formatBytes(breakdown.video), 'bg-yellow-400'],
@@ -169,8 +173,24 @@ function Sidebar({
       .catch(() => setProfileImageUrl(''));
   }, [user?.email]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   return (
-    <aside className="flex h-full w-64 flex-col border-slate-200/60 bg-slate-50/40 backdrop-blur-xl p-4 lg:border-r">
+    <aside className="flex h-full w-64 flex-col border-sidebar-border bg-sidebar text-sidebar-foreground p-4 lg:border-r">
       <div className="flex items-center gap-2.5 pb-3 pt-1">
         <BrandLogo className="h-8 w-8" />
         <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -178,7 +198,10 @@ function Sidebar({
         </span>
       </div>
 
-      <div className="flex items-center gap-2.5 border-y border-slate-200/60 py-3 my-3">
+      <div
+        ref={menuRef}
+        className="relative flex items-center gap-2.5 border-y border-border py-3 my-3"
+      >
         {!profileImageUrl || avatarError ? (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm border border-blue-400/20">
             {(user?.name ?? user?.email ?? 'U').trim().charAt(0).toUpperCase()}
@@ -187,17 +210,42 @@ function Sidebar({
           <img
             src={profileImageUrl}
             alt="User avatar"
-            className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+            className="h-8 w-8 rounded-full border border-border object-cover"
             onError={() => setAvatarError(true)}
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold text-slate-900 leading-none">
+          <p className="truncate text-[15px] font-bold text-foreground leading-none">
             {user?.name ?? 'User'}
           </p>
-          <p className="truncate text-xs text-slate-500 mt-1">{user?.email ?? 'Loading...'}</p>
+          <p className="truncate text-xs text-muted-foreground mt-1">
+            {user?.email ?? 'Loading...'}
+          </p>
         </div>
-        <MoreVertical className="h-4 w-4 text-slate-400" />
+        <button
+          type="button"
+          aria-label="Profile menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+          className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+        {menuOpen ? (
+          <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-sm border border-border bg-card shadow-xl shadow-slate-950/10">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                onLogout();
+              }}
+              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] font-bold text-destructive transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Log Out
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <nav className="grid gap-1">
@@ -207,7 +255,7 @@ function Sidebar({
               key={item.label}
               type="button"
               disabled
-              className="inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-xl px-3.5 text-[13px] font-bold text-slate-400 opacity-60"
+              className="inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-sm px-3.5 text-[13px] font-bold text-muted-foreground opacity-60"
             >
               <item.icon className="h-4 w-4" />
               {item.label}
@@ -219,10 +267,10 @@ function Sidebar({
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'inline-flex h-10 items-center gap-2.5 rounded-xl px-3.5 text-[13px] font-bold transition-all border border-transparent',
+                  'inline-flex h-10 items-center gap-2.5 rounded-sm px-3.5 text-[13px] font-bold transition-all border border-transparent',
                   isActive
-                    ? 'bg-blue-600/10 text-blue-600 border-blue-600/10 shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900',
+                    ? 'bg-primary/10 text-primary border-ring/10 shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
                 )
               }
             >
@@ -231,42 +279,50 @@ function Sidebar({
             </NavLink>
           ),
         )}
+        {user?.role === 'admin' ? (
+          <NavLink
+            to="/users"
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'inline-flex h-10 items-center gap-2.5 rounded-sm px-3.5 text-[13px] font-bold transition-all border border-transparent',
+                isActive
+                  ? 'bg-primary/10 text-primary border-ring/10 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )
+            }
+          >
+            <Users className="h-4 w-4" />
+            Users
+          </NavLink>
+        ) : null}
       </nav>
 
-      <div className="mt-auto border-t border-slate-200/60 pt-4 text-[13px]">
+      <div className="mt-auto border-t border-border pt-4 text-[13px]">
         <div className="mb-3 space-y-1.5">
           {items.map(([label, value, color]) => (
             <div
               key={label}
-              className="flex items-center justify-between text-slate-500 font-medium"
+              className="flex items-center justify-between text-muted-foreground font-medium"
             >
               <span className="flex items-center gap-1.5">
                 <span className={cn('h-1.5 w-1.5 rounded-full', color)} />
                 {label}
               </span>
-              <span className="font-semibold text-slate-700">{value}</span>
+              <span className="font-semibold text-foreground">{value}</span>
             </div>
           ))}
         </div>
-        <div className="flex justify-between text-sm font-bold text-slate-700">
+        <div className="flex justify-between text-sm font-bold text-foreground">
           <span>{formatBytes(storage?.usedBytes)} used</span>
-          <span className="text-slate-400">{formatBytes(storage?.totalBytes)}</span>
+          <span className="text-muted-foreground">{formatBytes(storage?.totalBytes)}</span>
         </div>
-        <div className="my-2 h-1.5 rounded-full bg-slate-200/60 overflow-hidden">
+        <div className="my-2 h-1.5 rounded-full bg-accent overflow-hidden">
           <div
-            className="h-full rounded-full bg-blue-600 transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <Button
-          variant="danger"
-          size="sm"
-          className="mt-3 w-full justify-start h-10 px-3 text-[13px] font-bold"
-          onClick={onLogout}
-        >
-          <LogOut className="h-4 w-4" />
-          Log Out
-        </Button>
       </div>
     </aside>
   );
@@ -469,8 +525,8 @@ export function DriveLayout() {
   }, []);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-white">
-      <div className="flex min-h-screen w-full flex-col bg-white lg:h-screen lg:overflow-hidden lg:flex-row">
+    <main className="min-h-screen w-full overflow-x-hidden bg-background">
+      <div className="flex min-h-screen w-full flex-col bg-background lg:h-screen lg:overflow-hidden lg:flex-row">
         <div className="hidden lg:block lg:h-screen lg:shrink-0">
           <Sidebar user={user} storage={storage} breakdown={breakdown} onLogout={logout} />
         </div>
@@ -483,7 +539,7 @@ export function DriveLayout() {
         />
         <div
           className={cn(
-            'fixed inset-y-0 left-0 z-50 transform bg-white shadow-2xl transition-transform duration-300 ease-out lg:hidden',
+            'fixed inset-y-0 left-0 z-50 transform bg-card shadow-2xl transition-transform duration-300 ease-out lg:hidden',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
@@ -542,7 +598,7 @@ export function DriveLayout() {
                   >
                     <Bell className="h-5 w-5" />
                     {!infoOpen ? (
-                      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600" />
+                      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
                     ) : null}
                   </Button>
                   {infoOpen ? <SystemInfoDropdown storage={storage} /> : null}
@@ -551,7 +607,7 @@ export function DriveLayout() {
             </div>
             <div className="relative w-full min-w-0 flex-1 lg:max-w-sm xl:max-w-xl">
               <form onSubmit={searchFiles} className="relative w-full">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
@@ -562,8 +618,8 @@ export function DriveLayout() {
                   type="button"
                   onClick={() => setFiltersOpen(!filtersOpen)}
                   className={cn(
-                    'absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 transition-colors',
-                    filtersOpen && 'text-blue-600 hover:text-blue-700',
+                    'absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors',
+                    filtersOpen && 'text-primary hover:text-primary',
                   )}
                   aria-label="Search filters"
                 >
@@ -572,15 +628,15 @@ export function DriveLayout() {
               </form>
 
               {filtersOpen && (
-                <div className="absolute left-0 right-0 top-12 z-50 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="text-sm font-extrabold text-slate-950">
+                <div className="absolute left-0 right-0 top-12 z-50 rounded-sm border border-border bg-card p-5 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <span className="text-sm font-extrabold text-foreground">
                       Advanced Search Filters
                     </span>
                     <button
                       type="button"
                       onClick={clearFilters}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                      className="text-xs font-bold text-primary hover:text-primary"
                     >
                       Clear All
                     </button>
@@ -589,45 +645,46 @@ export function DriveLayout() {
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     {/* File Kind */}
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         File Type
                       </label>
-                      <select
+                      <Combobox
+                        className="mt-1"
                         value={filterKind}
-                        onChange={(e) => setFilterKind(e.target.value)}
-                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
-                      >
-                        <option value="">All Types</option>
-                        <option value="image">Image</option>
-                        <option value="video">Video</option>
-                        <option value="pdf">PDF</option>
-                        <option value="doc">Document</option>
-                        <option value="archive">Archive</option>
-                      </select>
+                        onValueChange={(kind) => setFilterKind(kind)}
+                        options={[
+                          { value: '', label: 'All Types' },
+                          { value: 'image', label: 'Image' },
+                          { value: 'video', label: 'Video' },
+                          { value: 'pdf', label: 'PDF' },
+                          { value: 'doc', label: 'Document' },
+                          { value: 'archive', label: 'Archive' },
+                        ]}
+                      />
                     </div>
 
                     {/* Connected Account */}
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         Connected Account
                       </label>
-                      <select
+                      <Combobox
+                        className="mt-1"
                         value={filterAccountId}
-                        onChange={(e) => setFilterAccountId(e.target.value)}
-                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
-                      >
-                        <option value="">All Accounts</option>
-                        {accounts.map((acc) => (
-                          <option key={acc.id} value={acc.id}>
-                            {acc.email} ({acc.provider})
-                          </option>
-                        ))}
-                      </select>
+                        onValueChange={(id) => setFilterAccountId(id)}
+                        options={[
+                          { value: '', label: 'All Accounts' },
+                          ...accounts.map((acc) => ({
+                            value: acc.id,
+                            label: `${acc.email} (${acc.provider})`,
+                          })),
+                        ]}
+                      />
                     </div>
 
                     {/* Size range */}
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         Size Range (MB)
                       </label>
                       <div className="mt-1 flex items-center gap-2">
@@ -636,22 +693,22 @@ export function DriveLayout() {
                           placeholder="Min"
                           value={filterMinSize}
                           onChange={(e) => setFilterMinSize(e.target.value)}
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
+                          className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
                         />
-                        <span className="text-slate-400 text-xs font-semibold">to</span>
+                        <span className="text-muted-foreground text-xs font-semibold">to</span>
                         <input
                           type="number"
                           placeholder="Max"
                           value={filterMaxSize}
                           onChange={(e) => setFilterMaxSize(e.target.value)}
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
+                          className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
                         />
                       </div>
                     </div>
 
                     {/* Date range */}
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         Date Range
                       </label>
                       <div className="mt-1 flex items-center gap-2">
@@ -659,20 +716,20 @@ export function DriveLayout() {
                           type="date"
                           value={filterStartDate}
                           onChange={(e) => setFilterStartDate(e.target.value)}
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
+                          className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
                         />
-                        <span className="text-slate-400 text-xs font-semibold">to</span>
+                        <span className="text-muted-foreground text-xs font-semibold">to</span>
                         <input
                           type="date"
                           value={filterEndDate}
                           onChange={(e) => setFilterEndDate(e.target.value)}
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
+                          className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4">
+                  <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
                     <Button
                       variant="outline"
                       size="sm"
@@ -706,7 +763,7 @@ export function DriveLayout() {
               >
                 <Bell className="h-5 w-5" />
                 {!infoOpen ? (
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600" />
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
                 ) : null}
               </Button>
               {infoOpen ? <SystemInfoDropdown storage={storage} /> : null}
@@ -717,15 +774,15 @@ export function DriveLayout() {
       </div>
 
       {uploadProgress.open ? (
-        <div className="fixed inset-x-3 bottom-3 z-[70] max-h-[70dvh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[min(420px,calc(100vw-2.5rem))]">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <div className="flex items-center gap-2 font-extrabold text-sm text-slate-950">
+        <div className="fixed inset-x-3 bottom-3 z-[70] max-h-[70dvh] overflow-hidden rounded-sm border border-border bg-card shadow-2xl shadow-slate-900/20 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[min(420px,calc(100vw-2.5rem))]">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="flex items-center gap-2 font-extrabold text-sm text-foreground">
               {uploadProgress.status === 'done' ? (
                 <CheckCircle className="h-5 w-5 text-emerald-500" />
               ) : uploadProgress.status === 'partial' || uploadProgress.status === 'error' ? (
                 <X className="h-5 w-5 text-red-500" />
               ) : (
-                <Upload className="h-5 w-5 text-blue-600" />
+                <Upload className="h-5 w-5 text-primary" />
               )}
               {uploadProgress.status === 'done'
                 ? 'Upload complete'
@@ -765,40 +822,42 @@ export function DriveLayout() {
             <div className="p-4">
               <div className="flex items-center justify-between gap-3 text-sm">
                 <p className="truncate font-semibold">{uploadProgress.fileName}</p>
-                <span className="text-slate-500">{uploadProgress.percent}%</span>
+                <span className="text-muted-foreground">{uploadProgress.percent}%</span>
               </div>
-              <div className="mt-3 h-2 rounded-full bg-slate-100">
+              <div className="mt-3 h-2 rounded-full bg-muted">
                 <div
                   className={
                     uploadProgress.status === 'error' || uploadProgress.status === 'partial'
                       ? 'h-full rounded-full bg-red-500'
                       : uploadProgress.status === 'done'
                         ? 'h-full rounded-full bg-emerald-500'
-                        : 'h-full rounded-full bg-blue-600'
+                        : 'h-full rounded-full bg-primary'
                   }
                   style={{ width: `${uploadProgress.percent}%` }}
                 />
               </div>
               {uploadProgress.files.length > 0 ? (
-                <div className="mt-4 grid max-h-64 gap-3 overflow-y-auto pr-1 text-slate-950">
+                <div className="mt-4 grid max-h-64 gap-3 overflow-y-auto pr-1 text-foreground">
                   {uploadProgress.files.map((file, index) => (
                     <div
                       key={`${file.name}-${file.size}-${index}`}
-                      className="grid gap-1 rounded-xl bg-slate-50 p-3"
+                      className="grid gap-1 rounded-sm bg-muted p-3"
                     >
                       <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
                         <p className="min-w-0 flex-1 truncate font-semibold" title={file.name}>
                           {file.name}
                         </p>
-                        <span className="shrink-0 text-xs text-slate-500">{file.percent}%</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {file.percent}%
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
+                      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                         <span>{formatBytes(file.size)}</span>
                         <div className="flex items-center gap-2">
                           {file.status === 'error' && (
                             <Button
                               variant="default"
-                              className="h-6 px-2 text-[11px] font-extrabold text-white bg-blue-600 hover:bg-blue-700 shadow-none border-none"
+                              className="h-6 px-2 text-[11px] font-extrabold text-white bg-primary shadow-none border-none"
                               onClick={() => retryFailedUpload(file.name)}
                             >
                               Retry
@@ -807,10 +866,10 @@ export function DriveLayout() {
                           <span
                             className={
                               file.status === 'error'
-                                ? 'font-semibold text-red-600'
+                                ? 'font-semibold text-destructive'
                                 : file.status === 'done'
                                   ? 'font-semibold text-emerald-600'
-                                  : 'font-semibold text-blue-600'
+                                  : 'font-semibold text-primary'
                             }
                           >
                             {file.status === 'error'
@@ -823,14 +882,14 @@ export function DriveLayout() {
                           </span>
                         </div>
                       </div>
-                      <div className="h-1.5 rounded-full bg-slate-200">
+                      <div className="h-1.5 rounded-full bg-accent">
                         <div
                           className={
                             file.status === 'error'
                               ? 'h-full rounded-full bg-red-500'
                               : file.status === 'done'
                                 ? 'h-full rounded-full bg-emerald-500'
-                                : 'h-full rounded-full bg-blue-600'
+                                : 'h-full rounded-full bg-primary'
                           }
                           style={{ width: `${file.percent}%` }}
                         />

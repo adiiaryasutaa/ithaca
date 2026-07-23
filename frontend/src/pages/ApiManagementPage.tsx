@@ -102,24 +102,24 @@ export function ApiManagementPage() {
         }
       />
       {message ? (
-        <p className="mt-5 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{message}</p>
+        <p className="mt-5 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
       ) : null}
       {secret ? (
-        <Card className="mt-5 min-w-0 overflow-hidden border-blue-200 bg-blue-50 p-0">
+        <Card className="mt-5 min-w-0 overflow-hidden border-primary/20 bg-primary/10 p-0">
           <div className="grid min-w-0 gap-4 p-4 sm:p-5">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-primary text-white">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <p className="font-extrabold text-blue-950">Copy your API key now</p>
-                <p className="mt-1 text-sm text-blue-700">
+                <p className="mt-1 text-sm text-primary">
                   This secret is shown once. Store it securely before closing this page.
                 </p>
               </div>
             </div>
             <div className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <code className="block min-w-0 max-w-full overflow-x-auto rounded-xl bg-white p-3 text-xs font-semibold text-slate-950 sm:text-sm">
+              <code className="block min-w-0 max-w-full overflow-x-auto rounded-sm bg-card p-3 text-xs font-semibold text-foreground sm:text-sm">
                 {secret}
               </code>
               <Button className="w-full lg:w-auto" type="button" onClick={() => copy(secret)}>
@@ -133,19 +133,19 @@ export function ApiManagementPage() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Card className="p-4">
-          <KeyRound className="h-5 w-5 text-blue-600" />
+          <KeyRound className="h-5 w-5 text-primary" />
           <p className="mt-3 text-2xl font-extrabold">{activeKeys}</p>
-          <p className="text-sm text-slate-500">Active keys</p>
+          <p className="text-sm text-muted-foreground">Active keys</p>
         </Card>
         <Card className="p-4">
           <CheckCircle className="h-5 w-5 text-emerald-600" />
           <p className="mt-3 text-2xl font-extrabold">{usedKeys}</p>
-          <p className="text-sm text-slate-500">Used keys</p>
+          <p className="text-sm text-muted-foreground">Used keys</p>
         </Card>
         <Card className="p-4">
-          <UploadCloud className="h-5 w-5 text-blue-600" />
+          <UploadCloud className="h-5 w-5 text-primary" />
           <p className="mt-3 text-2xl font-extrabold">1</p>
-          <p className="text-sm text-slate-500">Upload endpoint</p>
+          <p className="text-sm text-muted-foreground">Upload endpoint</p>
         </Card>
       </div>
 
@@ -153,16 +153,16 @@ export function ApiManagementPage() {
         <Card className="min-w-0 p-4 sm:p-5">
           <div>
             <h2 className="text-lg font-extrabold">API Keys</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Keys can only upload files. Raw secrets are never stored.
             </p>
           </div>
           <div className="mt-4 grid gap-3">
             {apiKeys.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-center sm:p-6">
-                <KeyRound className="mx-auto h-8 w-8 text-blue-600" />
+              <div className="rounded-sm border border-dashed border-input p-5 text-center sm:p-6">
+                <KeyRound className="mx-auto h-8 w-8 text-primary" />
                 <p className="mt-3 font-extrabold">No API keys yet</p>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Create one key, copy it once, then use the docs below.
                 </p>
                 <Button className="mt-4 w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
@@ -173,45 +173,45 @@ export function ApiManagementPage() {
               apiKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className="grid min-w-0 gap-4 rounded-2xl bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+                  className="grid min-w-0 gap-4 rounded-sm bg-muted p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
                 >
                   <div className="min-w-0">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <p className="min-w-0 break-words font-semibold text-slate-950">
+                      <p className="min-w-0 break-words font-semibold text-foreground">
                         {apiKey.name}
                       </p>
                       <span
                         className={
                           apiKey.status === 'active'
-                            ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700'
-                            : 'rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600'
+                            ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-600'
+                            : 'rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-muted-foreground'
                         }
                       >
                         {apiKey.status}
                       </span>
                     </div>
-                    <div className="mt-2 grid min-w-0 gap-1 text-sm text-slate-500 sm:grid-cols-2">
+                    <div className="mt-2 grid min-w-0 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
                       <p className="min-w-0 truncate">
-                        <span className="font-semibold text-slate-700">Prefix:</span>{' '}
+                        <span className="font-semibold text-foreground">Prefix:</span>{' '}
                         {apiKey.keyPrefix}...
                       </p>
                       <p className="min-w-0 break-words">
-                        <span className="font-semibold text-slate-700">Created:</span>{' '}
+                        <span className="font-semibold text-foreground">Created:</span>{' '}
                         {formatDate(apiKey.createdAt)}
                       </p>
                       <p className="min-w-0 break-words">
-                        <span className="font-semibold text-slate-700">Last used:</span>{' '}
+                        <span className="font-semibold text-foreground">Last used:</span>{' '}
                         {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : 'Never'}
                       </p>
                       <p className="min-w-0 break-words">
-                        <span className="font-semibold text-slate-700">Scope:</span>{' '}
+                        <span className="font-semibold text-foreground">Scope:</span>{' '}
                         {apiKey.scopes.join(', ')}
                       </p>
                     </div>
                   </div>
                   <Button
                     className="w-full lg:w-auto"
-                    variant="danger"
+                    variant="destructive"
                     onClick={() => revokeKey(apiKey.id)}
                     disabled={apiKey.status === 'revoked'}
                   >
@@ -227,14 +227,14 @@ export function ApiManagementPage() {
         <Card className="min-w-0 p-4 sm:p-5">
           <div>
             <h2 className="text-lg font-extrabold">Upload API Docs</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Multipart upload uses the same storage routing as dashboard uploads.
             </p>
           </div>
-          <div className="mt-4 grid gap-4 text-sm text-slate-600">
+          <div className="mt-4 grid gap-4 text-sm text-muted-foreground">
             <div className="min-w-0">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="font-bold text-slate-950">Endpoint</p>
+                <p className="font-bold text-foreground">Endpoint</p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -244,37 +244,37 @@ export function ApiManagementPage() {
                   Copy
                 </Button>
               </div>
-              <code className="block min-w-0 max-w-full overflow-x-auto rounded-xl bg-slate-100 p-3 text-xs text-slate-950 sm:text-sm">
+              <code className="block min-w-0 max-w-full overflow-x-auto rounded-sm bg-muted p-3 text-xs text-foreground sm:text-sm">
                 POST {API_URL}/api/v1/uploads
               </code>
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-slate-950">Auth Header</p>
-              <code className="mt-2 block min-w-0 max-w-full overflow-x-auto rounded-xl bg-slate-100 p-3 text-xs text-slate-950 sm:text-sm">
+              <p className="font-bold text-foreground">Auth Header</p>
+              <code className="mt-2 block min-w-0 max-w-full overflow-x-auto rounded-sm bg-muted p-3 text-xs text-foreground sm:text-sm">
                 Authorization: Bearer 9d_live_xxx
               </code>
             </div>
             <div className="min-w-0">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="font-bold text-slate-950">cURL</p>
+                <p className="font-bold text-foreground">cURL</p>
                 <Button variant="outline" size="sm" onClick={() => copy(curlExample)}>
                   <Clipboard className="h-4 w-4" />
                   Copy
                 </Button>
               </div>
-              <pre className="max-h-72 max-w-full overflow-auto rounded-xl bg-slate-950 p-3 text-xs leading-relaxed text-white">
+              <pre className="max-h-72 max-w-full overflow-auto rounded-sm bg-slate-950 p-3 text-xs leading-relaxed text-white">
                 {curlExample}
               </pre>
             </div>
             <div className="min-w-0">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="font-bold text-slate-950">JavaScript</p>
+                <p className="font-bold text-foreground">JavaScript</p>
                 <Button variant="outline" size="sm" onClick={() => copy(jsExample)}>
                   <Clipboard className="h-4 w-4" />
                   Copy
                 </Button>
               </div>
-              <pre className="max-h-72 max-w-full overflow-auto rounded-xl bg-slate-950 p-3 text-xs leading-relaxed text-white">
+              <pre className="max-h-72 max-w-full overflow-auto rounded-sm bg-slate-950 p-3 text-xs leading-relaxed text-white">
                 {jsExample}
               </pre>
             </div>
@@ -290,7 +290,7 @@ export function ApiManagementPage() {
       >
         <form className="grid gap-4" onSubmit={createKey}>
           <input
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            className="h-11 rounded-sm border border-border px-3 text-sm"
             placeholder="Key name"
             value={keyName}
             onChange={(event) => setKeyName(event.target.value)}

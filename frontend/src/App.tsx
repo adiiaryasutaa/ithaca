@@ -14,37 +14,44 @@ import { SharedPage } from '@/pages/SharedPage';
 import { StarredPage } from '@/pages/StarredPage';
 import { PublicFilePage } from '@/pages/PublicFilePage';
 import { ApiManagementPage } from '@/pages/ApiManagementPage';
+import { UsersPage } from '@/pages/UsersPage';
 import { TrashPage } from '@/pages/TrashPage';
 import { ActivityLogPage } from '@/pages/ActivityLogPage';
 import { UploadProvider } from '@/context/UploadContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   return (
     <UploadProvider>
-      <Routes>
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="google-auth" element={<GoogleAuthPage />} />
-        <Route path="google-connected" element={<GoogleConnectedPage />} />
-        <Route path="public/files/:token" element={<PublicFilePage />} />
-        <Route path="public/files/:token/embed" element={<PublicFilePage embed />} />
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DriveLayout />}>
-            <Route index element={<Navigate to="/all-files" replace />} />
-            <Route path="all-files" element={<AllFilesPage />} />
-            <Route path="quota" element={<QuotaTrackerPage />} />
-            <Route path="shared" element={<SharedPage />} />
-            <Route path="recent" element={<RecentPage />} />
-            <Route path="starred" element={<StarredPage />} />
-            <Route path="archived" element={<ArchivedPage />} />
-            <Route path="trash" element={<TrashPage />} />
-            <Route path="activity" element={<ActivityLogPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="api" element={<ApiManagementPage />} />
+      <TooltipProvider>
+        <Routes>
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="google-auth" element={<GoogleAuthPage />} />
+          <Route path="google-connected" element={<GoogleConnectedPage />} />
+          <Route path="public/files/:token" element={<PublicFilePage />} />
+          <Route path="public/files/:token/embed" element={<PublicFilePage embed />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DriveLayout />}>
+              <Route index element={<Navigate to="/all-files" replace />} />
+              <Route path="all-files" element={<AllFilesPage />} />
+              <Route path="quota" element={<QuotaTrackerPage />} />
+              <Route path="shared" element={<SharedPage />} />
+              <Route path="recent" element={<RecentPage />} />
+              <Route path="starred" element={<StarredPage />} />
+              <Route path="archived" element={<ArchivedPage />} />
+              <Route path="trash" element={<TrashPage />} />
+              <Route path="activity" element={<ActivityLogPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="api" element={<ApiManagementPage />} />
+              <Route path="users" element={<UsersPage />} />
+            </Route>
           </Route>
-        </Route>
-        <Route path="*" element={<Navigate to="/all-files" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/all-files" replace />} />
+        </Routes>
+        <Toaster />
+      </TooltipProvider>
     </UploadProvider>
   );
 }

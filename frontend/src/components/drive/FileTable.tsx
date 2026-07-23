@@ -29,7 +29,7 @@ export function FileTable({
       {/* Mobile card view */}
       <div className="grid gap-2.5 sm:hidden">
         {onToggleAll ? (
-          <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold shadow-sm">
+          <label className="flex items-center justify-between rounded-sm border border-border bg-card px-4 py-3 text-sm font-bold shadow-sm">
             <span>Select all files</span>
             <input
               type="checkbox"
@@ -61,8 +61,8 @@ export function FileTable({
               onContextMenu={(event) => onFileContextMenu?.(event, file)}
               className={
                 selected
-                  ? 'overflow-hidden rounded-2xl border file-selected p-3.5 shadow-sm cursor-grab active:cursor-grabbing'
-                  : 'overflow-hidden rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm cursor-grab active:cursor-grabbing'
+                  ? 'overflow-hidden rounded-sm border file-selected p-3.5 shadow-sm cursor-grab active:cursor-grabbing'
+                  : 'overflow-hidden rounded-sm border border-border bg-card p-3.5 shadow-sm cursor-grab active:cursor-grabbing'
               }
             >
               <div className="flex items-center gap-3">
@@ -84,12 +84,12 @@ export function FileTable({
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <h3
-                    className="truncate text-sm font-bold leading-snug text-slate-950"
+                    className="truncate text-sm font-bold leading-snug text-foreground"
                     title={file.name}
                   >
                     {file.name}
                   </h3>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <span>{meta}</span>
                     <span>·</span>
                     <span>{file.size}</span>
@@ -105,7 +105,7 @@ export function FileTable({
                   </div>
                 </div>
                 <button
-                  className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100"
+                  className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground"
                   onClick={(event) => {
                     event.stopPropagation();
                     onFileContextMenu?.(event, file);
@@ -124,7 +124,7 @@ export function FileTable({
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[760px] border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200/20 text-slate-950">
+            <tr className="border-b border-border text-foreground">
               <th className="w-9 py-2.5">
                 <input
                   type="checkbox"
@@ -135,7 +135,9 @@ export function FileTable({
               </th>
               <th className="py-2.5 font-extrabold">Name</th>
               {mode === 'default' ? (
-                <th className="py-2.5 font-extrabold text-slate-500 font-semibold">Folder</th>
+                <th className="py-2.5 font-extrabold text-muted-foreground font-semibold">
+                  Folder
+                </th>
               ) : null}
               {mode === 'shared' ? <th className="py-2.5 font-extrabold">Owner</th> : null}
               {mode === 'recent' ? <th className="py-2.5 font-extrabold">Last Opened</th> : null}
@@ -166,8 +168,8 @@ export function FileTable({
                 onClick={() => onToggleFile?.(file)}
                 className={
                   selectedFileIds.has(file.id ?? '')
-                    ? 'group border-b file-selected transition hover:bg-orange-500/15 cursor-grab active:cursor-grabbing'
-                    : 'group border-b border-slate-200/10 transition hover:bg-slate-100 cursor-grab active:cursor-grabbing'
+                    ? 'group border-b file-selected transition cursor-grab active:cursor-grabbing'
+                    : 'group border-b border-border transition cursor-grab active:cursor-grabbing'
                 }
               >
                 <td className="py-2.5">
@@ -193,32 +195,34 @@ export function FileTable({
                 </td>
                 {/* Folder path column — only in default mode */}
                 {mode === 'default' ? (
-                  <td className="py-2.5 text-slate-400">
+                  <td className="py-2.5 text-muted-foreground">
                     {file.folderName ? (
                       <span className="flex items-center gap-1 text-xs font-medium text-blue-500">
                         <FolderOpen className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate max-w-[120px]">{file.folderName}</span>
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-300">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </td>
                 ) : null}
-                {mode === 'shared' ? <td className="py-2.5 text-slate-500">{file.owner}</td> : null}
+                {mode === 'shared' ? (
+                  <td className="py-2.5 text-muted-foreground">{file.owner}</td>
+                ) : null}
                 {mode === 'recent' ? (
-                  <td className="py-2.5 text-slate-500">{file.openedDate}</td>
+                  <td className="py-2.5 text-muted-foreground">{file.openedDate}</td>
                 ) : null}
                 {mode === 'starred' ? (
-                  <td className="py-2.5 text-slate-500">{file.starredDate}</td>
+                  <td className="py-2.5 text-muted-foreground">{file.starredDate}</td>
                 ) : null}
                 {mode === 'archived' ? (
-                  <td className="py-2.5 text-slate-500">{file.archivedDate}</td>
+                  <td className="py-2.5 text-muted-foreground">{file.archivedDate}</td>
                 ) : null}
-                <td className="py-2.5 text-slate-500">
+                <td className="py-2.5 text-muted-foreground">
                   {mode === 'archived' ? file.location : file.date}
                 </td>
-                <td className="py-2.5 text-slate-500">{file.size}</td>
-                <td className="py-2.5 text-slate-500">
+                <td className="py-2.5 text-muted-foreground">{file.size}</td>
+                <td className="py-2.5 text-muted-foreground">
                   <span className="flex items-center gap-2">
                     <AvatarStack count={file.shared} />
                     {file.access}
@@ -255,8 +259,8 @@ export function FileTable({
                         }}
                         className={
                           copiedFileId === file.id
-                            ? 'inline-flex h-7 px-2 items-center justify-center rounded-lg text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all scale-95'
-                            : 'inline-flex h-7 px-2 items-center justify-center rounded-lg text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors'
+                            ? 'inline-flex h-7 px-2 items-center justify-center rounded-sm text-[11px] font-bold text-emerald-600 bg-emerald-500/10 transition-all scale-95'
+                            : 'inline-flex h-7 px-2 items-center justify-center rounded-sm text-[11px] font-bold text-primary bg-primary/10 transition-colors'
                         }
                       >
                         {copiedFileId === file.id ? 'Copied!' : 'Copy Link'}
@@ -269,13 +273,13 @@ export function FileTable({
                             new CustomEvent('ithaca:open-move-modal', { detail: file }),
                           );
                         }}
-                        className="inline-flex h-7 px-2 items-center justify-center rounded-lg text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                        className="inline-flex h-7 px-2 items-center justify-center rounded-sm text-[11px] font-bold text-muted-foreground bg-muted transition-colors"
                       >
                         Move
                       </button>
                     </div>
                     <button
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 shrink-0"
+                      className="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground shrink-0"
                       onClick={(event) => {
                         event.stopPropagation();
                         onFileContextMenu?.(event, file);

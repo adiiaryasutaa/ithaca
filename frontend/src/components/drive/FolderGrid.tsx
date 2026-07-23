@@ -82,24 +82,24 @@ export function FolderGrid({
             event.dataTransfer.dropEffect = 'move';
           }}
           onDragEnter={(event) => {
-            event.currentTarget.classList.add('bg-blue-50/50', 'border-blue-300');
+            event.currentTarget.classList.add('bg-primary/10/50', 'border-primary');
           }}
           onDragLeave={(event) => {
-            event.currentTarget.classList.remove('bg-blue-50/50', 'border-blue-300');
+            event.currentTarget.classList.remove('bg-primary/10/50', 'border-primary');
           }}
           onDrop={(event) => {
             event.preventDefault();
-            event.currentTarget.classList.remove('bg-blue-50/50', 'border-blue-300');
+            event.currentTarget.classList.remove('bg-primary/10/50', 'border-primary');
             const fileId = event.dataTransfer.getData('text/plain');
             if (fileId && folder.id) onDropItem?.(fileId, folder.id);
           }}
           className={cn(
-            'group relative flex cursor-pointer flex-col items-center justify-center transition hover:-translate-y-1 hover:shadow-xl',
+            'group relative flex cursor-pointer flex-col items-center justify-center transition',
             cfg.card,
           )}
         >
           <button
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 sm:right-3 sm:top-3"
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-sm text-muted-foreground sm:right-3 sm:top-3"
             onClick={(event) => {
               event.stopPropagation();
               onFolderMenu?.(event, folder);
@@ -115,7 +115,9 @@ export function FolderGrid({
           <h2 className={cn('line-clamp-2 text-center font-extrabold leading-tight', cfg.title)}>
             {folder.name}
           </h2>
-          <p className={cn('line-clamp-1 text-center text-slate-500', cfg.sub)}>{folder.updated}</p>
+          <p className={cn('line-clamp-1 text-center text-muted-foreground', cfg.sub)}>
+            {folder.updated}
+          </p>
         </Card>
       ))}
     </div>

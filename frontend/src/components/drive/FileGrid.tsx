@@ -55,11 +55,12 @@ const scaleConfig: Record<
     checkbox: 'h-5 w-5',
     menuBtn: '-mr-2 -mt-2 h-10 w-10',
     iconShell: 'h-16 w-16 sm:h-20 sm:w-20 mt-4',
-    icon: 'h-9 w-9 rounded-xl p-2 sm:h-11 sm:w-11',
-    title: 'line-clamp-2 min-h-10 text-sm font-extrabold text-slate-950 mt-5',
-    date: 'mt-2 truncate text-xs text-slate-500',
-    tagsShell: 'mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-slate-600',
-    tag: 'rounded-full bg-slate-100 px-2.5 py-1',
+    icon: 'h-9 w-9 rounded-sm p-2 sm:h-11 sm:w-11',
+    title: 'line-clamp-2 min-h-10 text-sm font-extrabold text-foreground mt-5',
+    date: 'mt-2 truncate text-xs text-muted-foreground',
+    tagsShell:
+      'mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-muted-foreground',
+    tag: 'rounded-full bg-muted px-2.5 py-1',
     mtCard: 'mt-5',
   },
   lg: {
@@ -68,11 +69,12 @@ const scaleConfig: Record<
     checkbox: 'h-6 w-6',
     menuBtn: '-mr-3 -mt-3 h-12 w-12',
     iconShell: 'h-24 w-24 sm:h-32 sm:w-32 mt-6',
-    icon: 'h-14 w-14 rounded-2xl p-3 sm:h-18 sm:w-18',
-    title: 'line-clamp-2 min-h-12 text-base font-extrabold text-slate-950 mt-6 sm:text-lg',
-    date: 'mt-2 truncate text-sm text-slate-500',
-    tagsShell: 'mt-4 flex flex-wrap justify-center gap-2 text-sm font-semibold text-slate-600',
-    tag: 'rounded-full bg-slate-100 px-3 py-1.5',
+    icon: 'h-14 w-14 rounded-sm p-3 sm:h-18 sm:w-18',
+    title: 'line-clamp-2 min-h-12 text-base font-extrabold text-foreground mt-6 sm:text-lg',
+    date: 'mt-2 truncate text-sm text-muted-foreground',
+    tagsShell:
+      'mt-4 flex flex-wrap justify-center gap-2 text-sm font-semibold text-muted-foreground',
+    tag: 'rounded-full bg-muted px-3 py-1.5',
     mtCard: 'mt-6',
   },
 };
@@ -107,8 +109,8 @@ export function FileGrid({
             onContextMenu={(event) => onFileContextMenu?.(event, file)}
             className={cn(
               selected
-                ? 'relative cursor-grab active:cursor-grabbing overflow-hidden file-selected shadow-sm transition hover:-translate-y-0.5 hover:shadow-md'
-                : 'relative cursor-grab active:cursor-grabbing overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md',
+                ? 'relative cursor-grab active:cursor-grabbing overflow-hidden file-selected shadow-sm transition'
+                : 'relative cursor-grab active:cursor-grabbing overflow-hidden transition',
               cfg.card,
             )}
           >
@@ -122,7 +124,7 @@ export function FileGrid({
               />
               <button
                 className={cn(
-                  'flex shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-white/80',
+                  'flex shrink-0 items-center justify-center rounded-sm text-muted-foreground',
                   cfg.menuBtn,
                 )}
                 onClick={(event) => {
@@ -138,7 +140,7 @@ export function FileGrid({
             <div className="flex justify-center mt-2">
               <div
                 className={cn(
-                  'flex items-center justify-center rounded-2xl bg-slate-100 text-slate-700',
+                  'flex items-center justify-center rounded-sm bg-muted text-foreground',
                   cfg.iconShell,
                 )}
               >
@@ -148,7 +150,7 @@ export function FileGrid({
 
             <div className={cn('min-w-0 text-center', cfg.mtCard)}>
               <h3
-                className={cn('font-extrabold text-slate-950 line-clamp-2', cfg.title)}
+                className={cn('font-extrabold text-foreground line-clamp-2', cfg.title)}
                 title={file.name}
               >
                 {file.name}
@@ -156,12 +158,12 @@ export function FileGrid({
               <p className={cfg.date}>{file.date}</p>
               <div
                 className={cn(
-                  'flex flex-wrap justify-center font-semibold text-slate-600',
+                  'flex flex-wrap justify-center font-semibold text-muted-foreground',
                   cfg.tagsShell,
                 )}
               >
-                <span className={cn('rounded-full bg-slate-100', cfg.tag)}>{file.size}</span>
-                <span className={cn('max-w-full truncate rounded-full bg-slate-100', cfg.tag)}>
+                <span className={cn('rounded-full bg-muted', cfg.tag)}>{file.size}</span>
+                <span className={cn('max-w-full truncate rounded-full bg-muted', cfg.tag)}>
                   {file.access}
                 </span>
               </div>

@@ -13,11 +13,11 @@ function DetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
-      <Icon className="mt-0.5 h-4 w-4 text-blue-600" />
+    <div className="flex items-start gap-3 rounded-sm bg-muted p-3">
+      <Icon className="mt-0.5 h-4 w-4 text-primary" />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="mt-1 break-words text-sm font-semibold text-slate-700">{value}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-1 break-words text-sm font-semibold text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -46,14 +46,14 @@ export function FileDetailsDrawer({
       <aside
         className={
           open
-            ? 'fixed right-0 top-0 z-50 h-full w-full max-w-md translate-x-0 border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300'
-            : 'fixed right-0 top-0 z-50 h-full w-full max-w-md translate-x-full border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300'
+            ? 'fixed right-0 top-0 z-50 h-full w-full max-w-md translate-x-0 border-l border-border bg-card shadow-2xl transition-transform duration-300'
+            : 'fixed right-0 top-0 z-50 h-full w-full max-w-md translate-x-full border-l border-border bg-card shadow-2xl transition-transform duration-300'
         }
       >
-        <div className="flex items-center justify-between border-b border-slate-200 p-5">
+        <div className="flex items-center justify-between border-b border-border p-5">
           <div>
             <h2 className="text-xl font-extrabold">File Details</h2>
-            <p className="mt-1 max-w-[18rem] truncate text-sm text-slate-500">
+            <p className="mt-1 max-w-[18rem] truncate text-sm text-muted-foreground">
               {file?.name ?? 'No file selected'}
             </p>
           </div>

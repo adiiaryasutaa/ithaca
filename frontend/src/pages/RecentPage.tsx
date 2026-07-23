@@ -24,15 +24,15 @@ export function RecentPage() {
         <h2 className="font-extrabold">Activity</h2>
         <div className="mt-4 grid gap-3">
           {activities.map((activity) => (
-            <div key={activity.text} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+            <div key={activity.text} className="flex items-center gap-3 rounded-sm bg-muted p-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-card text-primary shadow-sm">
                 <activity.icon className="h-4 w-4" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold">{activity.text}</p>
-                <p className="text-sm text-slate-500">{activity.time}</p>
+                <p className="text-sm text-muted-foreground">{activity.time}</p>
               </div>
-              <Clock className="h-4 w-4 text-slate-400" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
           ))}
         </div>

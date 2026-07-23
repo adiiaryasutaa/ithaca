@@ -29,9 +29,9 @@ type Invite = {
 
 function ResourceIcon({ type }: { type: 'file' | 'folder' }) {
   return type === 'folder' ? (
-    <Folder className="h-5 w-5 text-blue-600" />
+    <Folder className="h-5 w-5 text-primary" />
   ) : (
-    <FileArchive className="h-5 w-5 text-blue-600" />
+    <FileArchive className="h-5 w-5 text-primary" />
   );
 }
 
@@ -68,7 +68,7 @@ export function SharedPage() {
         description="Files and folders shared with members or shared with you."
       />
       {message ? (
-        <p className="mt-5 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{message}</p>
+        <p className="mt-5 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
       ) : null}
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         <MetricCard
@@ -84,22 +84,22 @@ export function SharedPage() {
         <h2 className="font-extrabold">Shared With You</h2>
         <div className="mt-4 grid gap-3">
           {receivedInvites.length === 0 ? (
-            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+            <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
               No files or folders have been shared with you yet.
             </p>
           ) : (
             receivedInvites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-sm bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <ResourceIcon type={invite.targetType} />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-950">
+                    <p className="truncate font-semibold text-foreground">
                       {invite.target?.name ?? 'Unavailable resource'}
                     </p>
-                    <p className="text-sm text-slate-500 capitalize">
+                    <p className="text-sm text-muted-foreground capitalize">
                       {invite.targetType} • {invite.role}
                       {invite.target?.sizeBytes ? ` • ${formatBytes(invite.target.sizeBytes)}` : ''}
                     </p>
@@ -109,7 +109,7 @@ export function SharedPage() {
                   className={cn(
                     'w-fit rounded-full px-3 py-1 text-xs font-bold capitalize',
                     invite.status === 'accepted'
-                      ? 'bg-emerald-50 text-emerald-700'
+                      ? 'bg-emerald-500/10 text-emerald-600'
                       : 'bg-amber-50 text-amber-700',
                   )}
                 >
@@ -125,42 +125,44 @@ export function SharedPage() {
         <h2 className="font-extrabold">Resources You Shared</h2>
         <div className="mt-4 grid gap-3">
           {sentInvites.length === 0 ? (
-            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+            <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
               No files or folders shared yet. Use Invite Members from the top bar.
             </p>
           ) : (
             sentInvites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-sm bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <ResourceIcon type={invite.targetType} />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-950">
+                    <p className="truncate font-semibold text-foreground">
                       {invite.target?.name ?? 'Unavailable resource'}
                     </p>
-                    <p className="break-all text-sm text-slate-500">Shared with {invite.email}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="break-all text-sm text-muted-foreground">
+                      Shared with {invite.email}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Invited {formatDate(invite.createdAt)}
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-bold capitalize text-slate-600">
+                  <span className="rounded-full bg-card px-3 py-1 text-xs font-bold capitalize text-muted-foreground">
                     {invite.role}
                   </span>
                   <span
                     className={cn(
                       'rounded-full px-3 py-1 text-xs font-bold capitalize',
                       invite.status === 'accepted'
-                        ? 'bg-emerald-50 text-emerald-700'
+                        ? 'bg-emerald-500/10 text-emerald-600'
                         : 'bg-amber-50 text-amber-700',
                     )}
                   >
                     {invite.status}
                   </span>
-                  <Button variant="danger" size="sm" onClick={() => revokeInvite(invite.id)}>
+                  <Button variant="destructive" size="sm" onClick={() => revokeInvite(invite.id)}>
                     <Trash2 className="h-4 w-4" />
                     Revoke
                   </Button>

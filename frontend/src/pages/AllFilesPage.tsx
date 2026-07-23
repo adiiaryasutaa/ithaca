@@ -41,6 +41,7 @@ import {
 } from '@/components/drive/FolderVisual';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { Input } from '@/components/ui/input';
+import { Combobox } from '@/components/ui/combobox';
 import { API_URL, apiFetch, formatBytes, formatDate } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 import { createPlyr, ensurePlyr } from '@/lib/plyr';
@@ -77,10 +78,10 @@ type ConnectedAccount = {
 };
 
 const sizeActiveClasses: Record<FolderSizeScale, string> = {
-  xs: 'bg-white text-slate-800 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30 shadow-sm dark:shadow-none',
-  sm: 'bg-white text-slate-800 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30 shadow-sm dark:shadow-none',
-  md: 'bg-white text-slate-800 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30 shadow-sm dark:shadow-none',
-  lg: 'bg-white text-slate-800 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 shadow-sm dark:shadow-none',
+  xs: 'bg-card text-slate-800 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30 shadow-sm dark:shadow-none',
+  sm: 'bg-card text-slate-800 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30 shadow-sm dark:shadow-none',
+  md: 'bg-card text-slate-800 dark:bg-primary/20 dark:text-blue-300 dark:border-ring/30 shadow-sm dark:shadow-none',
+  lg: 'bg-card text-slate-800 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 shadow-sm dark:shadow-none',
 };
 
 type FileViewMode = 'list' | 'grid';
@@ -166,8 +167,8 @@ function FolderAppearanceFields({
             onClick={() => onColorChange(option)}
             className={
               normalizedColor === option
-                ? 'h-8 w-8 rounded-lg border-2 border-blue-600'
-                : 'h-8 w-8 rounded-lg border border-slate-200'
+                ? 'h-8 w-8 rounded-sm border-2 border-ring'
+                : 'h-8 w-8 rounded-sm border border-border'
             }
             style={{ backgroundColor: option }}
             aria-label={`Use ${option} folder color`}
@@ -184,8 +185,8 @@ function FolderAppearanceFields({
               onClick={() => onIconChange(option.url)}
               className={
                 iconUrl === option.url
-                  ? 'flex h-12 items-center justify-center rounded-xl border-2 border-blue-600 bg-blue-50 p-2'
-                  : 'flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-2 hover:bg-slate-100'
+                  ? 'flex h-12 items-center justify-center rounded-sm border-2 border-ring bg-primary/10 p-2'
+                  : 'flex h-12 items-center justify-center rounded-sm border border-border bg-muted p-2'
               }
               title={option.label}
               aria-label={`Use ${option.label} icon`}
@@ -830,17 +831,17 @@ export function AllFilesPage() {
     setHeaderActions(
       <div className="flex items-center gap-2">
         {/* Folder size scale picker */}
-        <div className="hidden sm:flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+        <div className="hidden sm:flex items-center gap-0.5 rounded-sm border border-border bg-muted p-0.5">
           {sizeLabels.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => changeFolderSize(s)}
               className={[
-                'rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-all border border-transparent',
+                'rounded-sm px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-all border border-transparent',
                 folderSizeScale === s
                   ? sizeActiveClasses[s]
-                  : 'text-slate-400 hover:text-slate-600',
+                  : 'text-muted-foreground hover:text-muted-foreground',
               ].join(' ')}
               aria-label={`Folder size ${s}`}
               aria-pressed={folderSizeScale === s}
@@ -850,7 +851,7 @@ export function AllFilesPage() {
           ))}
         </div>
         {/* Divider */}
-        <div className="hidden sm:block h-6 w-px bg-slate-200" />
+        <div className="hidden sm:block h-6 w-px bg-accent" />
         <Button size="sm" onClick={() => setUploadOpen(true)}>
           <Upload className="h-3.5 w-3.5" />
           Upload
@@ -894,17 +895,17 @@ export function AllFilesPage() {
           title={
             activeFolder ? (
               <span className="block min-w-0 truncate">
-                <button className="text-blue-600 hover:underline" onClick={closeFolder}>
+                <button className="text-primary hover:underline" onClick={closeFolder}>
                   All Files
                 </button>
                 {folderBreadcrumbs.map((folder, index) => (
                   <span key={folder.id}>
-                    <span className="text-slate-400"> / </span>
+                    <span className="text-muted-foreground"> / </span>
                     {index === folderBreadcrumbs.length - 1 ? (
                       <span>{folder.name}</span>
                     ) : (
                       <button
-                        className="text-blue-600 hover:underline"
+                        className="text-primary hover:underline"
                         onClick={() => folder.id && openFolderById(folder.id)}
                       >
                         {folder.name}
@@ -932,17 +933,17 @@ export function AllFilesPage() {
             <RefreshCw className={syncingDrive ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
             {syncingDrive ? 'Syncing...' : 'Sync'}
           </Button>
-          <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+          <div className="flex items-center gap-0.5 rounded-sm border border-border bg-muted p-0.5">
             {(['xs', 'sm', 'md', 'lg'] as FolderSizeScale[]).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => changeFolderSize(s)}
                 className={[
-                  'rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-all border border-transparent',
+                  'rounded-sm px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-all border border-transparent',
                   folderSizeScale === s
                     ? sizeActiveClasses[s]
-                    : 'text-slate-400 hover:text-slate-600',
+                    : 'text-muted-foreground hover:text-muted-foreground',
                 ].join(' ')}
                 aria-label={`Folder size ${s}`}
               >
@@ -952,7 +953,7 @@ export function AllFilesPage() {
           </div>
         </div>
         {message ? (
-          <p className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{message}</p>
+          <p className="mt-3 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
         ) : null}
         {!activeFolder &&
           (recentFolders.length > 0 ? (
@@ -965,13 +966,13 @@ export function AllFilesPage() {
               onDropItem={handleDropItem}
             />
           ) : (
-            <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-500">
+            <p className="mt-4 rounded-sm bg-muted p-5 text-sm text-muted-foreground">
               No folders yet. Click New Folder to organize uploads.
             </p>
           ))}
         {!activeFolder && moreFolders.length > 0 ? (
           <>
-            <h2 className="mt-4 font-extrabold text-slate-700">More Folders</h2>
+            <h2 className="mt-4 font-extrabold text-foreground">More Folders</h2>
             <FolderGrid
               items={moreFolders}
               sizeScale={folderSizeScale}
@@ -983,7 +984,7 @@ export function AllFilesPage() {
         ) : null}
         {activeFolder && folders.length > 0 ? (
           <>
-            <h2 className="mt-4 font-extrabold text-slate-700">Folders</h2>
+            <h2 className="mt-4 font-extrabold text-foreground">Folders</h2>
             <FolderGrid
               items={folders}
               sizeScale={folderSizeScale}
@@ -995,17 +996,17 @@ export function AllFilesPage() {
         ) : null}
         <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="soft" className="hidden sm:inline-flex">
+            <Button variant="secondary" className="hidden sm:inline-flex">
               <Archive className="h-4 w-4" />
               Recents
             </Button>
-            <Button variant="soft" className="hidden sm:inline-flex">
+            <Button variant="secondary" className="hidden sm:inline-flex">
               <Star className="h-4 w-4" />
               Starred
             </Button>
             {selectedFileIds.size > 0 ? (
-              <div className="flex w-full flex-col gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/10 p-3 sm:w-auto sm:flex-row sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
-                <span className="text-sm font-extrabold text-slate-700">
+              <div className="flex w-full flex-col gap-3 rounded-sm border border-orange-500/20 bg-orange-500/10 p-3 sm:w-auto sm:flex-row sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
+                <span className="text-sm font-extrabold text-foreground">
                   {selectedFileIds.size} selected
                 </span>
                 <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-3">
@@ -1017,7 +1018,11 @@ export function AllFilesPage() {
                     <FolderInput className="h-4 w-4" />
                     Move
                   </Button>
-                  <Button className="w-full" variant="danger" onClick={() => setDeleteOpen(true)}>
+                  <Button
+                    className="w-full"
+                    variant="destructive"
+                    onClick={() => setDeleteOpen(true)}
+                  >
                     <Trash2 className="h-4 w-4" />
                     Delete
                   </Button>
@@ -1030,7 +1035,7 @@ export function AllFilesPage() {
           </div>
           <div className="flex gap-3">
             <Button
-              variant={fileViewMode === 'grid' ? 'soft' : 'outline'}
+              variant={fileViewMode === 'grid' ? 'secondary' : 'outline'}
               size="icon"
               aria-label="Show files as grid"
               aria-pressed={fileViewMode === 'grid'}
@@ -1039,7 +1044,7 @@ export function AllFilesPage() {
               <LayoutGrid className="h-5 w-5" />
             </Button>
             <Button
-              variant={fileViewMode === 'list' ? 'soft' : 'outline'}
+              variant={fileViewMode === 'list' ? 'secondary' : 'outline'}
               size="icon"
               aria-label="Show files as list"
               aria-pressed={fileViewMode === 'list'}
@@ -1050,14 +1055,14 @@ export function AllFilesPage() {
           </div>
         </div>
         {cutFolder ? (
-          <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-700">
+          <p className="mt-3 rounded-sm bg-amber-50 p-3 text-sm font-semibold text-amber-700">
             <ClipboardPaste className="mr-2 inline h-4 w-4" />
             Cut folder: {cutFolder.name}. Press Ctrl+V or right-click empty area to paste here.
           </p>
         ) : null}
         {files.length === 0 ? (
-          <Card className="mt-3 p-5 bg-white/10 backdrop-blur-sm border border-white/20 dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
-            <p className="text-sm text-slate-500">
+          <Card className="mt-3 p-5 bg-card border border-border dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
+            <p className="text-sm text-muted-foreground">
               {searchQuery
                 ? `No files found for "${searchQuery}".`
                 : activeFolder
@@ -1066,7 +1071,7 @@ export function AllFilesPage() {
             </p>
           </Card>
         ) : (
-          <Card className="mt-3 p-4 sm:p-5 bg-white/10 backdrop-blur-sm border border-white/20 dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
+          <Card className="mt-3 p-4 sm:p-5 bg-card border border-border dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
             {fileViewMode === 'grid' ? (
               <FileGrid
                 files={files}
@@ -1173,21 +1178,21 @@ export function AllFilesPage() {
             onDrop={handleUploadDrag}
             className={
               isUploadDragging
-                ? 'grid cursor-pointer gap-3 rounded-2xl border-2 border-dashed border-blue-500 bg-blue-50 p-4 text-center transition sm:p-6'
-                : 'grid cursor-pointer gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 text-center transition hover:border-blue-300 hover:bg-blue-50/50 sm:p-6'
+                ? 'grid cursor-pointer gap-3 rounded-sm border-2 border-dashed border-ring bg-primary/10 p-4 text-center transition sm:p-6'
+                : 'grid cursor-pointer gap-3 rounded-sm border-2 border-dashed border-border bg-muted p-4 text-center transition hover:border-primary sm:p-6'
             }
           >
             <Upload
               className={
                 isUploadDragging
-                  ? 'mx-auto h-8 w-8 text-blue-600'
-                  : 'mx-auto h-8 w-8 text-slate-500'
+                  ? 'mx-auto h-8 w-8 text-primary'
+                  : 'mx-auto h-8 w-8 text-muted-foreground'
               }
             />
-            <span className="text-sm font-extrabold text-slate-950">
+            <span className="text-sm font-extrabold text-foreground">
               Drop file here or click to browse
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted-foreground">
               Metadata is sent before the file so upload can stream directly to Google Drive.
             </span>
             <Input
@@ -1200,45 +1205,41 @@ export function AllFilesPage() {
           </label>
           <label className="grid gap-2 text-sm font-semibold">
             Target Storage Account
-            <select
-              className="h-11 rounded-xl border border-slate-200 px-3 text-sm bg-white"
+            <Combobox
+              className="h-11"
               value={selectedTargetAccountId}
-              onChange={(event) => setSelectedTargetAccountId(event.target.value)}
-            >
-              <option value="">Automatic (Default)</option>
-              {connectedAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.email || account.displayName || account.id} (
-                  {account.provider === 's3' ? 'S3' : 'Google Drive'})
-                </option>
-              ))}
-            </select>
+              onValueChange={(id) => setSelectedTargetAccountId(id)}
+              options={[
+                { value: '', label: 'Automatic (Default)' },
+                ...connectedAccounts.map((account) => ({
+                  value: account.id,
+                  label: `${account.email || account.displayName || account.id} (${account.provider === 's3' ? 'S3' : 'Google Drive'})`,
+                })),
+              ]}
+            />
           </label>
           {activeFolder ? (
-            <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+            <p className="rounded-sm bg-muted p-3 text-sm text-muted-foreground">
               Uploading to: <b>{activeFolder.name}</b>
             </p>
           ) : (
             <label className="grid gap-2 text-sm font-semibold">
               Virtual Folder
-              <select
-                className="h-11 rounded-xl border border-slate-200 px-3 text-sm bg-white"
+              <Combobox
+                className="h-11"
                 value={selectedFolderId}
-                onChange={(event) => setSelectedFolderId(event.target.value)}
-              >
-                <option value="">No folder</option>
-                {allFolders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(id) => setSelectedFolderId(id)}
+                options={[
+                  { value: '', label: 'No folder' },
+                  ...allFolders.map((folder) => ({ value: String(folder.id), label: folder.name })),
+                ]}
+              />
             </label>
           )}
           {selectedFiles.length > 0 ? (
-            <div className="grid max-h-56 gap-2 overflow-y-auto rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+            <div className="grid max-h-56 gap-2 overflow-y-auto rounded-sm bg-muted p-3 text-sm text-muted-foreground">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-bold text-slate-950">{selectedFiles.length} selected</span>
+                <span className="font-bold text-foreground">{selectedFiles.length} selected</span>
                 <span className="shrink-0">
                   {formatBytes(selectedFiles.reduce((total, file) => total + file.size, 0))}
                 </span>
@@ -1246,15 +1247,17 @@ export function AllFilesPage() {
               {selectedFiles.map((file, index) => (
                 <div
                   key={`${file.name}-${file.size}-${index}`}
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-white px-3 py-2"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-sm bg-card px-3 py-2"
                 >
                   <span className="min-w-0 flex-1 truncate" title={file.name}>
                     {file.name}
                   </span>
-                  <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatBytes(file.size)}
+                  </span>
                   <button
                     type="button"
-                    className="shrink-0 text-slate-500 hover:text-red-600"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
                     onClick={() => removeUploadFile(index)}
                     aria-label={`Remove ${file.name}`}
                   >
@@ -1335,18 +1338,15 @@ export function AllFilesPage() {
         onClose={() => setMoveOpen(false)}
       >
         <form onSubmit={moveFile} className="grid gap-4">
-          <select
-            className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+          <Combobox
+            className="h-11"
             value={selectedFolderId}
-            onChange={(event) => setSelectedFolderId(event.target.value)}
-          >
-            <option value="">No folder</option>
-            {allFolders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name}
-              </option>
-            ))}
-          </select>
+            onValueChange={(id) => setSelectedFolderId(id)}
+            options={[
+              { value: '', label: 'No folder' },
+              ...allFolders.map((folder) => ({ value: String(folder.id), label: folder.name })),
+            ]}
+          />
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => setMoveOpen(false)}>
               Cancel
@@ -1369,7 +1369,7 @@ export function AllFilesPage() {
           <Button variant="outline" onClick={() => setDeleteOpen(false)}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={deleteFile}>
+          <Button variant="destructive" onClick={deleteFile}>
             Delete
           </Button>
         </div>
@@ -1382,7 +1382,7 @@ export function AllFilesPage() {
       >
         <div className="grid gap-4">
           <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">
+            <label className="text-xs font-bold text-muted-foreground block mb-1">
               Ithaca Public Share Link (No GDrive login required)
             </label>
             <Input value={shareUrl} readOnly />
@@ -1397,18 +1397,18 @@ export function AllFilesPage() {
             </Button>
           </div>
           {copiedShareLink ? (
-            <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+            <p className="rounded-sm bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-600">
               Share link copied to clipboard.
             </p>
           ) : null}
 
           {activeFile?.accountProvider === 'google_drive' && (
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid gap-3">
+            <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 grid gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">
+                <label className="text-xs font-bold text-muted-foreground block mb-1">
                   Google Drive Direct Link (Public Access)
                 </label>
-                <p className="text-xs text-slate-500 mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   Configure this file to be publicly accessible on Google Drive so external tools
                   can edit/download it.
                 </p>
@@ -1416,7 +1416,7 @@ export function AllFilesPage() {
               {gdrivePublicUrl ? (
                 <div className="grid gap-2">
                   <Input value={gdrivePublicUrl} readOnly />
-                  <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+                  <p className="rounded-sm bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-600">
                     Google Drive public link generated and copied to clipboard!
                   </p>
                 </div>
@@ -1440,7 +1440,7 @@ export function AllFilesPage() {
                       setMakingPublic(false);
                     }
                   }}
-                  className="w-full text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-950/30 dark:border-blue-900/50"
+                  className="w-full text-primary bg-primary/10 border-primary/20 dark:text-primary dark:bg-blue-950/30 dark:border-blue-900/50"
                 >
                   {makingPublic ? 'Making Public...' : 'Make Public & Copy GDrive Link'}
                 </Button>
@@ -1485,7 +1485,7 @@ export function AllFilesPage() {
           <Button variant="outline" onClick={() => setFolderDeleteOpen(false)}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={deleteFolder}>
+          <Button variant="destructive" onClick={deleteFolder}>
             Delete
           </Button>
         </div>
@@ -1509,17 +1509,18 @@ export function AllFilesPage() {
           </label>
           <label className="grid gap-2 text-sm font-semibold">
             Role
-            <select
-              className="h-11 rounded-xl border border-slate-200 px-3 text-sm"
+            <Combobox
+              className="h-11"
               value={inviteRole}
-              onChange={(event) => setInviteRole(event.target.value)}
-            >
-              <option value="viewer">Can view</option>
-              <option value="editor">Can edit</option>
-            </select>
+              onValueChange={(role) => setInviteRole(role)}
+              options={[
+                { value: 'viewer', label: 'Can view' },
+                { value: 'editor', label: 'Can edit' },
+              ]}
+            />
           </label>
           {inviteMessage ? (
-            <p className="rounded-xl bg-blue-50 p-3 text-sm font-semibold text-blue-700">
+            <p className="rounded-sm bg-primary/10 p-3 text-sm font-semibold text-primary">
               {inviteMessage}
             </p>
           ) : null}
@@ -1538,14 +1539,14 @@ export function AllFilesPage() {
         onClose={closePreview}
         className="overflow-hidden sm:max-w-[95vw] xl:max-w-[1400px]"
       >
-        <div className="flex h-[72dvh] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 sm:h-[80vh]">
+        <div className="flex h-[72dvh] w-full items-center justify-center overflow-hidden rounded-sm border border-border bg-muted sm:h-[80vh]">
           {previewLoading ? (
-            <div className="p-6 text-center text-sm font-semibold text-slate-500">
+            <div className="p-6 text-center text-sm font-semibold text-muted-foreground">
               Loading preview...
             </div>
           ) : null}
           {previewError ? (
-            <div className="p-6 text-center text-sm text-red-600">{previewError}</div>
+            <div className="p-6 text-center text-sm text-destructive">{previewError}</div>
           ) : null}
           {!previewLoading && !previewError && activePreviewKind === 'image' && previewUrl ? (
             <img
@@ -1583,7 +1584,7 @@ export function AllFilesPage() {
             />
           ) : null}
           {!previewLoading && !previewError && !activePreviewKind ? (
-            <div className="p-6 text-center text-sm text-slate-500">
+            <div className="p-6 text-center text-sm text-muted-foreground">
               Preview not available for this file type. Use Download instead.
             </div>
           ) : null}
