@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma.js';
+import { logger } from '../config/logger.js';
 
 export async function createAuditLog(
   userId: string,
@@ -18,6 +19,6 @@ export async function createAuditLog(
       },
     });
   } catch (error) {
-    console.error('Failed to create audit log:', error);
+    logger.error({ err: error }, 'Failed to create audit log');
   }
 }

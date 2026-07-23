@@ -4,6 +4,8 @@ import { z } from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   DATABASE_URL: z.string().min(1),
   APP_PORT: z.coerce.number().default(4000),
   FRONTEND_URL: z.string().url(),

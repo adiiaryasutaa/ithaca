@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { requireAuth } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../config/prisma.js';
+import { logger } from '../../config/logger.js';
 import { decryptText, encryptText } from '../../utils/crypto.js';
 import Busboy from 'busboy';
 
@@ -52,7 +53,7 @@ systemRouter.post('/update', requireAuth, (req, res, next) => {
       // Fallback to simple git pull if update.sh doesn't exist
       exec('git pull', { cwd: projectRoot }, (error, stdout, stderr) => {
         if (error) {
-          console.error('System update failed:', error);
+          logger.error({ err: error }, 'System update failed');
           return res.status(500).json({
             code: 'UPDATE_FAILED',
             message: 'Failed to run git pull. Make sure git is installed and configured.',
@@ -61,9 +62,9 @@ systemRouter.post('/update', requireAuth, (req, res, next) => {
           });
         }
 
-        console.log('System update stdout:', stdout);
+        logger.info({ stdout }, 'System update stdout');
         if (stderr) {
-          console.warn('System update stderr:', stderr);
+          logger.warn({ stderr }, 'System update stderr');
         }
 
         return res.json({
@@ -253,7 +254,7 @@ systemRouter.post('/restore', requireAuth, (req, res, next) => {
 
           // Graceful exit after response is sent
           setTimeout(() => {
-            console.log('Database restored. Exiting to allow PM2 restart.');
+            logger.info('Database restored. Exiting to allow PM2 restart.');
             process.exit(0);
           }, 2000);
         } catch (err: any) {
@@ -262,7 +263,7 @@ systemRouter.post('/restore', requireAuth, (req, res, next) => {
               fs.unlinkSync(tempDbPath);
             } catch {}
           }
-          console.error('Failed to restore database:', err);
+          logger.error({ err }, 'Failed to restore database');
           return res.status(500).json({
             code: 'RESTORE_FAILED',
             message: 'Failed to restore database.',
@@ -277,7 +278,7 @@ systemRouter.post('/restore', requireAuth, (req, res, next) => {
             fs.unlinkSync(tempDbPath);
           } catch {}
         }
-        console.error('Write error on temp DB:', err);
+        logger.error({ err }, 'Write error on temp DB');
         return res.status(500).json({
           code: 'WRITE_ERROR',
           message: 'Failed to write temporary database file.',
@@ -287,7 +288,7 @@ systemRouter.post('/restore', requireAuth, (req, res, next) => {
     });
 
     busboy.on('error', (err) => {
-      console.error('Busboy error:', err);
+      logger.error({ err }, 'Busboy error');
       if (!res.headersSent) {
         next(err);
       }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { google } from 'googleapis';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma.js';
+import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
 import {
   getAuthedGoogleClient,
@@ -98,11 +99,11 @@ async function ensureProviderFolderIds(
           folder.providerFolderId = gId;
         }
       } catch (error) {
-        console.error(`Failed self-healing for folder ${folder.id}:`, error);
+        logger.error({ err: error, folderId: folder.id }, 'Failed self-healing for folder');
       }
     }
   } catch (error) {
-    console.error('Failed self-healing Google Drive auth:', error);
+    logger.error({ err: error }, 'Failed self-healing Google Drive auth');
   }
 }
 
@@ -196,7 +197,7 @@ folderRouter.post('/', async (req: AuthRequest, res, next) => {
         });
         providerFolderId = driveFolder.data.id ?? null;
       } catch (error) {
-        console.error('Failed to create folder on Google Drive:', error);
+        logger.error({ err: error }, 'Failed to create folder on Google Drive');
       }
     }
 
@@ -282,7 +283,7 @@ folderRouter.patch('/:id', async (req: AuthRequest, res, next) => {
           requestBody: { name: body.name },
         });
       } catch (error) {
-        console.error('Failed to rename folder on Google Drive:', error);
+        logger.error({ err: error }, 'Failed to rename folder on Google Drive');
       }
     }
 
@@ -319,7 +320,7 @@ folderRouter.patch('/:id', async (req: AuthRequest, res, next) => {
           fields: 'id, parents',
         });
       } catch (error) {
-        console.error('Failed to move folder on Google Drive:', error);
+        logger.error({ err: error }, 'Failed to move folder on Google Drive');
       }
     }
 

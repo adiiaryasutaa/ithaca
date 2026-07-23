@@ -1,6 +1,8 @@
 import cors from 'cors';
 import express from 'express';
+import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
+import { logger } from './config/logger.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { providerConfigRouter } from './modules/provider-configs/provider-config.routes.js';
@@ -21,6 +23,16 @@ app.set('trust proxy', true);
 
 app.use(cors({ origin: env.FRONTEND_URL }));
 app.use(express.json({ limit: '1mb' }));
+app.use(
+  pinoHttp({
+    logger,
+    customLogLevel(_req, res, err) {
+      if (err || res.statusCode >= 500) return 'error';
+      if (res.statusCode >= 400) return 'warn';
+      return 'info';
+    },
+  }),
+);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api', publicApiRouter);

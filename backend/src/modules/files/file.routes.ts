@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma.js';
 import { env } from '../../config/env.js';
+import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
 import { hashToken, randomToken } from '../../utils/crypto.js';
 import {
@@ -522,10 +523,7 @@ fileRouter.get('/:id/view-url', async (req: AuthRequest, res, next) => {
         },
       });
     } catch (err: any) {
-      console.error(
-        'Failed to make Google Drive file public during view-url retrieval:',
-        err.message || err,
-      );
+      logger.error({ err }, 'Failed to make Google Drive file public during view-url retrieval');
     }
 
     const metadata = await drive.files.get({
@@ -614,7 +612,7 @@ fileRouter.post('/batch-download', async (req: AuthRequest, res, next) => {
         }
         archive.append(stream, { name: fileName });
       } catch (err) {
-        console.error(`Failed to add file ${file.name} to zip:`, err);
+        logger.error({ err, fileName: file.name }, 'Failed to add file to zip');
       }
     }
 

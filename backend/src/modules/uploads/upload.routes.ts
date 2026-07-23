@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { google } from 'googleapis';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
+import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
 import {
   ensureGoogleAppFolder,
@@ -32,7 +33,7 @@ type UploadMeta = {
 type RoutingMode = 'most_available' | 'round_robin' | 'priority';
 
 function logUpload(message: string, metadata?: Record<string, unknown>) {
-  console.info('[upload]', message, metadata ?? '');
+  logger.info(metadata ?? {}, `[upload] ${message}`);
 }
 
 function syncQuotaInBackground(accountId: string, sessionId: string) {
@@ -99,9 +100,9 @@ async function selectAccount(
           await syncGoogleQuota(account.id);
         }
       } catch (err: any) {
-        console.error(
-          `[upload] failed to sync quota for account ${account.email} (${account.id}):`,
-          err.message || err,
+        logger.error(
+          { err, accountId: account.id, email: account.email },
+          '[upload] failed to sync quota for account',
         );
         await prisma.connectedAccount
           .update({
@@ -399,7 +400,7 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
               providerFileId,
             });
           } catch (err: any) {
-            console.error('Failed to make Google Drive file public:', err.message || err);
+            logger.error({ err }, 'Failed to make Google Drive file public');
           }
         }
 
@@ -756,7 +757,7 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
           },
         });
       } catch (err: any) {
-        console.error('Failed to make Google Drive resumable file public:', err.message || err);
+        logger.error({ err }, 'Failed to make Google Drive resumable file public');
       }
 
       let existingFile = await prisma.file.findFirst({

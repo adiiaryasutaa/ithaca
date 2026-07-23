@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
+import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
 import { decryptText, encryptText, hashToken, randomToken } from '../../utils/crypto.js';
 import { hashPassword } from '../../utils/password.js';
@@ -269,9 +270,9 @@ connectedAccountRouter.get('/google/callback', async (req, res, next) => {
         ? encryptText(tokens.refresh_token)
         : existingAccount?.refreshTokenEncrypted;
       if (!refreshTokenEncrypted) {
-        console.error(
-          'Google login failed: no refresh token received and no existing account. Has refresh_token:',
-          !!tokens.refresh_token,
+        logger.error(
+          { hasRefreshToken: !!tokens.refresh_token },
+          'Google login failed: no refresh token received and no existing account',
         );
         return res.redirect(`${env.FRONTEND_URL}/google-auth?status=error`);
       }
@@ -384,7 +385,7 @@ connectedAccountRouter.get('/google/callback', async (req, res, next) => {
     await syncGoogleQuota(account.id);
     return res.redirect(`${env.FRONTEND_URL}/google-connected?status=success`);
   } catch (error) {
-    console.error('Google OAuth callback failed:', error);
+    logger.error({ err: error }, 'Google OAuth callback failed');
     return res.redirect(`${env.FRONTEND_URL}/google-connected?status=error`);
   }
 });
