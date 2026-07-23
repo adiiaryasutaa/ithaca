@@ -21,3 +21,17 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
     return res.status(401).json({ code: 'AUTH_INVALID_TOKEN', message: 'Invalid token.' });
   }
 }
+
+export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { role: true, status: true },
+    });
+    if (!user || user.status !== 'active' || user.role !== 'admin')
+      return res.status(403).json({ code: 'FORBIDDEN', message: 'Admin access required.' });
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}

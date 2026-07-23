@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma.js';
 import { env } from '../../config/env.js';
+import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
 import { hashPassword, verifyPassword } from '../../utils/password.js';
 import { encryptText, hashToken, randomToken } from '../../utils/crypto.js';
@@ -66,7 +67,10 @@ authRouter.post('/register', async (req, res, next) => {
     const tokens = await createSession(user.id, req);
     return res
       .status(201)
-      .json({ ...tokens, user: { id: user.id, name: user.name, email: user.email } });
+      .json({
+        ...tokens,
+        user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      });
   } catch (error) {
     return next(error);
   }
@@ -80,8 +84,15 @@ authRouter.post('/login', async (req, res, next) => {
       return res
         .status(401)
         .json({ code: 'AUTH_INVALID_CREDENTIALS', message: 'Invalid email or password.' });
+    if (user.status !== 'active')
+      return res
+        .status(403)
+        .json({ code: 'ACCOUNT_DISABLED', message: 'This account has been disabled.' });
     const tokens = await createSession(user.id, req);
-    return res.json({ ...tokens, user: { id: user.id, name: user.name, email: user.email } });
+    return res.json({
+      ...tokens,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    });
   } catch (error) {
     return next(error);
   }
@@ -210,7 +221,7 @@ authRouter.get('/google/callback', async (req, res) => {
     });
     return res.redirect(`${env.FRONTEND_URL}/google-auth?token=${handoffToken}`);
   } catch (error) {
-    console.error('Google Auth callback failed:', error);
+    logger.error({ err: error }, 'Google Auth callback failed');
     return res.redirect(`${env.FRONTEND_URL}/google-auth?status=error`);
   }
 });
@@ -273,7 +284,7 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: req.user!.id },
-      select: { id: true, name: true, email: true, status: true },
+      select: { id: true, name: true, email: true, status: true, role: true },
     });
     return res.json({ user });
   } catch (error) {
