@@ -977,7 +977,7 @@ export function AllFilesPage() {
             </p>
           </Card>
         ) : (
-          <Card className="mt-3 min-w-0 overflow-x-auto p-0 bg-card border border-border dark:bg-transparent dark:border-0 dark:shadow-none">
+          <Card className="mt-3 min-w-0 overflow-x-auto p-0 bg-card dark:bg-transparent dark:shadow-none">
             <FileTable
               files={files}
               selectedFileIds={selectedFileIds}
