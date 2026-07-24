@@ -824,22 +824,22 @@ export function SettingsPage() {
         <div className="grid content-start gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:gap-3">
           <Card className="p-4">
             <HardDrive className="h-5 w-5 text-primary" />
-            <h2 className="mt-2 text-[14px] font-bold">Storage</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
+            <h2 className="text-[14px] font-bold">Storage</h2>
+            <p className="text-[12px] text-muted-foreground">
               Connected accounts: {accounts.length}
             </p>
           </Card>
           <Card className="p-4">
             <Bell className="h-5 w-5 text-primary" />
-            <h2 className="mt-2 text-[14px] font-bold">Notifications</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
+            <h2 className="text-[14px] font-bold">Notifications</h2>
+            <p className="text-[12px] text-muted-foreground">
               Email and app alerts are active.
             </p>
           </Card>
           <Card className="p-4">
             <Globe className="h-5 w-5 text-primary" />
-            <h2 className="mt-2 text-[14px] font-bold">Region</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
+            <h2 className="text-[14px] font-bold">Region</h2>
+            <p className="text-[12px] text-muted-foreground">
               Workspace region: local gateway.
             </p>
           </Card>
