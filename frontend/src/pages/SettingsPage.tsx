@@ -821,7 +821,7 @@ export function SettingsPage() {
             </div>
           </Card>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:gap-3">
+        <div className="grid content-start gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:gap-3">
           <Card className="p-4">
             <HardDrive className="h-5 w-5 text-primary" />
             <h2 className="mt-2 text-[14px] font-bold">Storage</h2>
