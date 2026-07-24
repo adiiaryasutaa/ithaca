@@ -261,7 +261,7 @@ function navItemClass(collapsed: boolean, isActive: boolean) {
     navItemBaseClass,
     collapsed ? 'w-10 justify-center' : 'px-3.5',
     isActive
-      ? 'bg-primary/10 text-primary border-ring/10 shadow-sm'
+      ? 'bg-primary/10 text-primary border-ring/10'
       : 'text-muted-foreground hover:text-foreground',
   );
 }

@@ -220,7 +220,7 @@ function Sidebar({
                 cn(
                   'inline-flex h-10 items-center gap-2.5 rounded-sm px-3.5 text-[13px] font-bold transition-all border border-transparent',
                   isActive
-                    ? 'bg-primary/10 text-primary border-ring/10 shadow-sm'
+                    ? 'bg-primary/10 text-primary border-ring/10'
                     : 'text-muted-foreground hover:text-foreground',
                 )
               }
@@ -238,7 +238,7 @@ function Sidebar({
               cn(
                 'inline-flex h-10 items-center gap-2.5 rounded-sm px-3.5 text-[13px] font-bold transition-all border border-transparent',
                 isActive
-                  ? 'bg-primary/10 text-primary border-ring/10 shadow-sm'
+                  ? 'bg-primary/10 text-primary border-ring/10'
                   : 'text-muted-foreground hover:text-foreground',
               )
             }
