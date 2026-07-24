@@ -17,7 +17,7 @@ type InviteTarget = {
 };
 type Invite = {
   id: string;
-  email: string;f
+  email: string;
   role: string;
   status: string;
   targetType: 'file' | 'folder';
