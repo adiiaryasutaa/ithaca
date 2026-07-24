@@ -542,7 +542,7 @@ export function SettingsPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:flex">
                           <Button
-                            className="w-full"
+                            className="w-full sm:w-auto"
                             size="sm"
                             variant="outline"
                             onClick={() => sync(selectedAccount.id)}
@@ -558,7 +558,7 @@ export function SettingsPage() {
                             {syncingAccountId === selectedAccount.id ? 'Syncing...' : 'Sync'}
                           </Button>
                           <Button
-                            className="w-full"
+                            className="w-full sm:w-auto"
                             size="sm"
                             variant="destructive"
                             onClick={() => setAccountToDisconnect(selectedAccount)}
