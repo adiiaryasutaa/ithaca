@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, type FormEvent } from 'react';
 import { Bell, Cloud, Database, Globe, HardDrive, Link2, RefreshCw, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { confirmToast } from '@/lib/confirm-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
@@ -42,7 +44,6 @@ function availableLabel(account: ConnectedAccount) {
 export function SettingsPage() {
   const user = getStoredUser();
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
-  const [message, setMessage] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [s3Open, setS3Open] = useState(false);
   const [connectingS3, setConnectingS3] = useState(false);
@@ -87,8 +88,6 @@ export function SettingsPage() {
   const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
-  const [restoreMessage, setRestoreMessage] = useState('');
-  const [restoreSuccess, setRestoreSuccess] = useState(false);
 
   async function downloadBackup() {
     setDownloadingBackup(true);
@@ -112,7 +111,7 @@ export function SettingsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Failed to download backup: ' + err.message);
+      toast.error('Failed to download backup: ' + err.message);
     } finally {
       setDownloadingBackup(false);
     }
@@ -126,24 +125,13 @@ export function SettingsPage() {
     }
   }
 
-  async function restoreBackup() {
-    if (!restoreFile) return;
-    if (
-      !confirm(
-        'WARNING: Restoring database will overwrite all your current configurations, connected accounts, virtual folders, and user accounts. The server will restart. Are you sure you want to proceed?',
-      )
-    ) {
-      return;
-    }
-
+  async function performRestore(file: File) {
     setRestoringBackup(true);
-    setRestoreMessage('');
-    setRestoreSuccess(false);
 
     try {
       const token = getAccessToken();
       const formData = new FormData();
-      formData.append('file', restoreFile);
+      formData.append('file', file);
 
       const response = await fetch(`${API_URL}/system/restore`, {
         method: 'POST',
@@ -158,8 +146,7 @@ export function SettingsPage() {
         throw new Error(data.message || 'Failed to restore database.');
       }
 
-      setRestoreSuccess(true);
-      setRestoreMessage(
+      toast.success(
         data.message || 'Database restored successfully! Logging you out and reloading...',
       );
 
@@ -168,11 +155,20 @@ export function SettingsPage() {
         window.location.href = '/login';
       }, 4000);
     } catch (err: any) {
-      setRestoreSuccess(false);
-      setRestoreMessage(err.message || 'Failed to restore database.');
+      toast.error(err.message || 'Failed to restore database.');
     } finally {
       setRestoringBackup(false);
     }
+  }
+
+  function restoreBackup() {
+    if (!restoreFile) return;
+    const file = restoreFile;
+    confirmToast(
+      'WARNING: Restoring database will overwrite all your current configurations, connected accounts, virtual folders, and user accounts. The server will restart. Are you sure you want to proceed?',
+      () => performRestore(file),
+      'Restore',
+    );
   }
 
   useEffect(() => {
@@ -218,7 +214,6 @@ export function SettingsPage() {
 
   async function runSystemUpdate() {
     setUpdatingSystem(true);
-    setMessage('');
     setUpdateLog('Initiating system update in the background...\n');
     setUpdateFinished(false);
     setUpdateSuccess(null);
@@ -240,10 +235,17 @@ export function SettingsPage() {
     }
   }
 
+  function closeUpdateModal() {
+    setUpdateModalOpen(false);
+    setIsPollingLog(false);
+    if (updateFinished && updateSuccess) {
+      window.location.reload();
+    }
+  }
+
   async function saveGoogleConfig(event: FormEvent) {
     event.preventDefault();
     setSavingGoogleConfig(true);
-    setMessage('');
     try {
       const res = await apiFetch<{ message: string }>('/system/google-config', {
         method: 'POST',
@@ -253,11 +255,11 @@ export function SettingsPage() {
           redirectUri: googleRedirectUri || defaultRedirectUri,
         }),
       });
-      setMessage(res.message || 'Google OAuth credentials saved.');
+      toast.success(res.message || 'Google OAuth credentials saved.');
       setHasSecret(true);
       setGoogleClientSecret('');
     } catch (error) {
-      setMessage(
+      toast.error(
         error instanceof Error ? error.message : 'Failed to save Google OAuth configuration',
       );
     } finally {
@@ -293,7 +295,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     load().catch((error) =>
-      setMessage(error instanceof Error ? error.message : 'Failed to load settings'),
+      toast.error(error instanceof Error ? error.message : 'Failed to load settings'),
     );
   }, []);
 
@@ -317,11 +319,11 @@ export function SettingsPage() {
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin || event.data?.type !== 'GOOGLE_CONNECTED')
         return;
-      setMessage(
-        event.data.status === 'success'
-          ? 'Google Drive connected.'
-          : 'Google Drive connection failed.',
-      );
+      if (event.data.status === 'success') {
+        toast.success('Google Drive connected.');
+      } else {
+        toast.error('Google Drive connection failed.');
+      }
       load()
         .then(() => {
           window.dispatchEvent(new Event('ithaca:storage-changed'));
@@ -334,7 +336,6 @@ export function SettingsPage() {
 
   async function connectDrive() {
     setConnecting(true);
-    setMessage('');
     const popup = window.open('', 'google-drive-connect', 'width=540,height=720');
     if (popup) {
       popup.document.write(
@@ -350,7 +351,7 @@ export function SettingsPage() {
       }
     } catch (error) {
       if (popup) popup.close();
-      setMessage(
+      toast.error(
         error instanceof Error ? error.message : 'Failed to start Google Drive connection',
       );
     } finally {
@@ -372,15 +373,14 @@ export function SettingsPage() {
   async function disconnect() {
     if (!accountToDisconnect) return;
     setDisconnectingAccountId(accountToDisconnect.id);
-    setMessage('');
     try {
       await apiFetch(`/connected-accounts/${accountToDisconnect.id}`, { method: 'DELETE' });
       setAccountToDisconnect(null);
-      setMessage('Storage account disconnected.');
+      toast.success('Storage account disconnected.');
       await load();
       window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(
+      toast.error(
         error instanceof Error ? error.message : 'Failed to disconnect Google Drive account',
       );
     } finally {
@@ -391,7 +391,6 @@ export function SettingsPage() {
   async function connectS3(event: FormEvent) {
     event.preventDefault();
     setConnectingS3(true);
-    setMessage('');
     try {
       await apiFetch('/connected-accounts/s3', {
         method: 'POST',
@@ -412,11 +411,11 @@ export function SettingsPage() {
         forcePathStyle: false,
         quotaBytes: '',
       });
-      setMessage('S3 storage connected.');
+      toast.success('S3 storage connected.');
       await load();
       window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to connect S3 storage');
+      toast.error(error instanceof Error ? error.message : 'Failed to connect S3 storage');
     } finally {
       setConnectingS3(false);
     }
@@ -440,9 +439,6 @@ export function SettingsPage() {
           </>
         }
       />
-      {message ? (
-        <p className="mt-4 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
-      ) : null}
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_280px]">
         <div className="grid gap-4">
           <Card className="p-4">
@@ -822,18 +818,6 @@ export function SettingsPage() {
                   </div>
                 </div>
               </div>
-
-              {restoreMessage && (
-                <p
-                  className={
-                    restoreSuccess
-                      ? 'rounded-sm bg-emerald-500/10 p-3 text-xs font-semibold mt-1 text-emerald-600'
-                      : 'rounded-sm bg-destructive/10 p-3 text-xs font-semibold mt-1 text-destructive'
-                  }
-                >
-                  {restoreMessage}
-                </p>
-              )}
             </div>
           </Card>
         </div>
@@ -986,15 +970,14 @@ export function SettingsPage() {
         className="max-w-2xl"
         onClose={() => {
           if (!updateFinished) {
-            if (!confirm('The update is still running in the background. Close log viewer?')) {
-              return;
-            }
+            confirmToast(
+              'The update is still running in the background. Close log viewer?',
+              closeUpdateModal,
+              'Close',
+            );
+            return;
           }
-          setUpdateModalOpen(false);
-          setIsPollingLog(false);
-          if (updateFinished && updateSuccess) {
-            window.location.reload();
-          }
+          closeUpdateModal();
         }}
       >
         <div className="grid gap-4">
@@ -1019,13 +1002,14 @@ export function SettingsPage() {
               variant="outline"
               onClick={() => {
                 if (!updateFinished) {
-                  if (!confirm('The update is still running. Close log viewer?')) return;
+                  confirmToast(
+                    'The update is still running. Close log viewer?',
+                    closeUpdateModal,
+                    'Close',
+                  );
+                  return;
                 }
-                setUpdateModalOpen(false);
-                setIsPollingLog(false);
-                if (updateFinished && updateSuccess) {
-                  window.location.reload();
-                }
+                closeUpdateModal();
               }}
             >
               Close

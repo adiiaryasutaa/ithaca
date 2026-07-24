@@ -8,9 +8,9 @@ import {
   Folder,
   FileText,
   Download,
-  AlertTriangle,
   Move,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { apiFetch, formatDate } from '@/lib/api';
@@ -28,16 +28,14 @@ type AuditLog = {
 export function ActivityLogPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   async function loadLogs() {
     setLoading(true);
-    setError('');
     try {
       const data = await apiFetch<{ logs: AuditLog[] }>('/audit-logs');
       setLogs(data.logs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load activity logs');
+      toast.error(err instanceof Error ? err.message : 'Failed to load activity logs');
     } finally {
       setLoading(false);
     }
@@ -140,13 +138,6 @@ export function ActivityLogPage() {
         title="Activity Log"
         description="View audit trails and file activities in your Ithaca workspace."
       />
-
-      {error && (
-        <div className="mt-6 flex items-center gap-3 rounded-sm border border-destructive/20 bg-destructive/10 p-4 text-destructive">
-          <AlertTriangle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-semibold">{error}</p>
-        </div>
-      )}
 
       <Card className="mt-8 overflow-hidden border border-border bg-card shadow-xl shadow-slate-900/5">
         <div className="border-b border-border bg-muted px-6 py-4">

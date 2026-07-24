@@ -25,9 +25,9 @@ export function FileTable({
   const [copiedFileId, setCopiedFileId] = useState<string | null>(null);
 
   return (
-    <div className="mt-4">
+    <div>
       {/* Mobile card view */}
-      <div className="grid gap-2.5 sm:hidden">
+      <div className="grid gap-2.5 p-3 sm:hidden">
         {onToggleAll ? (
           <label className="flex items-center justify-between rounded-sm border border-border bg-card px-4 py-3 text-sm font-bold shadow-sm">
             <span>Select all files</span>
@@ -122,10 +122,10 @@ export function FileTable({
 
       {/* Desktop table view */}
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[860px] border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-border text-foreground">
-              <th className="w-9 py-2.5">
+            <tr className="border-b border-border text-xs uppercase text-muted-foreground">
+              <th className="w-9 px-4 py-3">
                 <input
                   type="checkbox"
                   className="h-4 w-4 accent-blue-600"
@@ -133,26 +133,30 @@ export function FileTable({
                   onChange={onToggleAll}
                 />
               </th>
-              <th className="py-2.5 font-extrabold">Name</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">Name</th>
               {mode === 'default' ? (
-                <th className="py-2.5 font-extrabold text-muted-foreground font-semibold">
-                  Folder
-                </th>
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Folder</th>
               ) : null}
-              {mode === 'shared' ? <th className="py-2.5 font-extrabold">Owner</th> : null}
-              {mode === 'recent' ? <th className="py-2.5 font-extrabold">Last Opened</th> : null}
-              {mode === 'starred' ? <th className="py-2.5 font-extrabold">Starred On</th> : null}
-              {mode === 'archived' ? (
-                <th className="py-2.5 font-extrabold">Archived Date</th>
+              {mode === 'shared' ? (
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Owner</th>
+              ) : null}
+              {mode === 'recent' ? (
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Last Opened</th>
+              ) : null}
+              {mode === 'starred' ? (
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Starred On</th>
               ) : null}
               {mode === 'archived' ? (
-                <th className="py-2.5 font-extrabold">Original Location</th>
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Archived Date</th>
+              ) : null}
+              {mode === 'archived' ? (
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Original Location</th>
               ) : (
-                <th className="py-2.5 font-extrabold">Last Modified</th>
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">Last Modified</th>
               )}
-              <th className="py-2.5 font-extrabold">Size</th>
-              <th className="py-2.5 font-extrabold">Access</th>
-              <th className="py-2.5" />
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">Size</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">Access</th>
+              <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -168,11 +172,11 @@ export function FileTable({
                 onClick={() => onToggleFile?.(file)}
                 className={
                   selectedFileIds.has(file.id ?? '')
-                    ? 'group border-b file-selected transition cursor-grab active:cursor-grabbing'
-                    : 'group border-b border-border transition cursor-grab active:cursor-grabbing'
+                    ? 'group border-b file-selected transition cursor-grab last:border-0 active:cursor-grabbing'
+                    : 'group border-b border-border transition cursor-grab last:border-0 active:cursor-grabbing'
                 }
               >
-                <td className="py-2.5">
+                <td className="px-4 py-3">
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-blue-600"
@@ -181,7 +185,7 @@ export function FileTable({
                     onClick={(event) => event.stopPropagation()}
                   />
                 </td>
-                <td className="py-2.5 font-semibold">
+                <td className="px-4 py-3 font-semibold text-foreground">
                   <span className="flex min-w-0 items-center gap-2.5">
                     {mode === 'starred' ? (
                       <Star className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
@@ -195,7 +199,7 @@ export function FileTable({
                 </td>
                 {/* Folder path column — only in default mode */}
                 {mode === 'default' ? (
-                  <td className="py-2.5 text-muted-foreground">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {file.folderName ? (
                       <span className="flex items-center gap-1 text-xs font-medium text-blue-500">
                         <FolderOpen className="h-3.5 w-3.5 shrink-0" />
@@ -207,28 +211,36 @@ export function FileTable({
                   </td>
                 ) : null}
                 {mode === 'shared' ? (
-                  <td className="py-2.5 text-muted-foreground">{file.owner}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {file.owner}
+                  </td>
                 ) : null}
                 {mode === 'recent' ? (
-                  <td className="py-2.5 text-muted-foreground">{file.openedDate}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {file.openedDate}
+                  </td>
                 ) : null}
                 {mode === 'starred' ? (
-                  <td className="py-2.5 text-muted-foreground">{file.starredDate}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {file.starredDate}
+                  </td>
                 ) : null}
                 {mode === 'archived' ? (
-                  <td className="py-2.5 text-muted-foreground">{file.archivedDate}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {file.archivedDate}
+                  </td>
                 ) : null}
-                <td className="py-2.5 text-muted-foreground">
+                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                   {mode === 'archived' ? file.location : file.date}
                 </td>
-                <td className="py-2.5 text-muted-foreground">{file.size}</td>
-                <td className="py-2.5 text-muted-foreground">
+                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{file.size}</td>
+                <td className="px-4 py-3 text-muted-foreground">
                   <span className="flex items-center gap-2">
                     <AvatarStack count={file.shared} />
-                    {file.access}
+                    <span className="truncate max-w-[160px]">{file.access}</span>
                   </span>
                 </td>
-                <td className="py-2.5 text-right">
+                <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     {/* Hover shortcuts */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex gap-1.5">

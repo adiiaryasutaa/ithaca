@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, Cloud, Database, Filter, Gauge, Link2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
@@ -65,7 +66,6 @@ export function QuotaTrackerPage() {
     priorityAccountIds: [],
     roundRobinCursor: 0,
   });
-  const [message, setMessage] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
@@ -92,7 +92,7 @@ export function QuotaTrackerPage() {
 
   useEffect(() => {
     load().catch((error) =>
-      setMessage(error instanceof Error ? error.message : 'Failed to load quota tracker'),
+      toast.error(error instanceof Error ? error.message : 'Failed to load quota tracker'),
     );
   }, []);
 
@@ -106,11 +106,11 @@ export function QuotaTrackerPage() {
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin || event.data?.type !== 'GOOGLE_CONNECTED')
         return;
-      setMessage(
-        event.data.status === 'success'
-          ? 'Google Drive connected.'
-          : 'Google Drive connection failed.',
-      );
+      if (event.data.status === 'success') {
+        toast.success('Google Drive connected.');
+      } else {
+        toast.error('Google Drive connection failed.');
+      }
       load().catch(() => undefined);
     }
     window.addEventListener('message', onMessage);
@@ -157,7 +157,7 @@ export function QuotaTrackerPage() {
       }),
     });
     setRoutingPolicy(data.policy);
-    setMessage('Upload routing policy updated.');
+    toast.success('Upload routing policy updated.');
   }
 
   function orderedAccounts() {
@@ -178,7 +178,7 @@ export function QuotaTrackerPage() {
     const [item] = nextIds.splice(index, 1);
     nextIds.splice(target, 0, item);
     saveRoutingPolicy({ ...routingPolicy, priorityAccountIds: nextIds }).catch((error) =>
-      setMessage(error instanceof Error ? error.message : 'Failed to update routing policy'),
+      toast.error(error instanceof Error ? error.message : 'Failed to update routing policy'),
     );
   }
 
@@ -204,10 +204,6 @@ export function QuotaTrackerPage() {
           </>
         }
       />
-      {message ? (
-        <p className="mt-5 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
-      ) : null}
-
       <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         <Card className="p-5">
           <p className="text-sm text-muted-foreground">Total Storage</p>
@@ -251,13 +247,14 @@ export function QuotaTrackerPage() {
             Routing mode
             <Combobox
               className="h-11"
+              searchable={false}
               value={routingPolicy.mode}
               onValueChange={(mode) =>
                 saveRoutingPolicy({
                   ...routingPolicy,
                   mode: mode as RoutingMode,
                 }).catch((error) =>
-                  setMessage(
+                  toast.error(
                     error instanceof Error ? error.message : 'Failed to update routing policy',
                   ),
                 )

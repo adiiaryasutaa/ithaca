@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { RotateCcw, Trash2, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
+import { RotateCcw, Trash2, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { apiFetch, formatBytes } from '@/lib/api';
+import { confirmToast } from '@/lib/confirm-toast';
 
 type TrashFile = {
   id: string;
@@ -22,8 +24,6 @@ export function TrashPage() {
   const [files, setFiles] = useState<TrashFile[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
   async function loadTrash() {
     setLoading(true);
@@ -31,8 +31,7 @@ export function TrashPage() {
       const data = await apiFetch<{ files: TrashFile[] }>('/files/trash');
       setFiles(data.files);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load trash');
-      setMessageType('error');
+      toast.error(error instanceof Error ? error.message : 'Failed to load trash');
     } finally {
       setLoading(false);
     }
@@ -60,7 +59,6 @@ export function TrashPage() {
   async function handleRestore(ids: string[]) {
     if (ids.length === 0) return;
     setLoading(true);
-    setMessage('');
     try {
       await apiFetch('/files/batch/restore', {
         method: 'POST',
@@ -72,27 +70,26 @@ export function TrashPage() {
         ids.forEach((id) => next.delete(id));
         return next;
       });
-      setMessage(`Successfully restored ${ids.length} file(s).`);
-      setMessageType('success');
+      toast.success(`Successfully restored ${ids.length} file(s).`);
       window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to restore files');
-      setMessageType('error');
+      toast.error(error instanceof Error ? error.message : 'Failed to restore files');
     } finally {
       setLoading(false);
     }
   }
 
-  async function handlePermanentDelete(ids: string[]) {
+  function handlePermanentDelete(ids: string[]) {
     if (ids.length === 0) return;
-    if (
-      !confirm(
-        `Are you sure you want to permanently delete ${ids.length} file(s)? This action cannot be undone.`,
-      )
-    )
-      return;
+    confirmToast(
+      `Are you sure you want to permanently delete ${ids.length} file(s)? This action cannot be undone.`,
+      () => performPermanentDelete(ids),
+      'Delete',
+    );
+  }
+
+  async function performPermanentDelete(ids: string[]) {
     setLoading(true);
-    setMessage('');
     try {
       await apiFetch('/files/batch/permanent', {
         method: 'DELETE',
@@ -104,12 +101,10 @@ export function TrashPage() {
         ids.forEach((id) => next.delete(id));
         return next;
       });
-      setMessage(`Permanently deleted ${ids.length} file(s).`);
-      setMessageType('success');
+      toast.success(`Permanently deleted ${ids.length} file(s).`);
       window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to permanently delete files');
-      setMessageType('error');
+      toast.error(error instanceof Error ? error.message : 'Failed to permanently delete files');
     } finally {
       setLoading(false);
     }
@@ -142,24 +137,7 @@ export function TrashPage() {
         }
       />
 
-      {message ? (
-        <p
-          className={`mt-5 rounded-sm p-3 text-sm flex items-center gap-2 ${
-            messageType === 'success'
-              ? 'bg-emerald-500/10 text-emerald-600'
-              : 'bg-destructive/10 text-destructive'
-          }`}
-        >
-          {messageType === 'success' ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <ShieldAlert className="h-4 w-4" />
-          )}
-          {message}
-        </p>
-      ) : null}
-
-      <Card className="mt-8 overflow-hidden">
+      <Card className="mt-6 min-w-0 overflow-x-auto p-0">
         {files.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-center">
             <Trash2 className="h-12 w-12 text-muted-foreground mb-3" />
@@ -167,84 +145,83 @@ export function TrashPage() {
             <p className="text-sm text-muted-foreground mt-1">Deleted files will appear here.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border text-sm font-semibold text-muted-foreground">
-                  <th className="p-4 w-12">
+          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase text-muted-foreground">
+                <th className="w-9 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === files.length && files.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded-sm border-input"
+                  />
+                </th>
+                <th className="px-4 py-3 font-semibold">Name</th>
+                <th className="px-4 py-3 font-semibold">Account</th>
+                <th className="px-4 py-3 font-semibold">Size</th>
+                <th className="px-4 py-3 font-semibold">Deleted At</th>
+                <th className="px-4 py-3 text-right font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {files.map((file) => (
+                <tr key={file.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.size === files.length && files.length > 0}
-                      onChange={toggleSelectAll}
+                      checked={selectedIds.has(file.id)}
+                      onChange={() => toggleSelect(file.id)}
                       className="rounded-sm border-input"
                     />
-                  </th>
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Account</th>
-                  <th className="p-4">Size</th>
-                  <th className="p-4">Deleted At</th>
-                  <th className="p-4 text-right">Actions</th>
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-foreground">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <span className="truncate max-w-xs sm:max-w-md block" title={file.name}>
+                        {file.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {file.connectedAccount.email} ({file.provider})
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {formatBytes(file.sizeBytes)}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {new Intl.DateTimeFormat('en', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    }).format(new Date(file.deletedAt))}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRestore([file.id])}
+                        disabled={loading}
+                        title="Restore"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Restore
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handlePermanentDelete([file.id])}
+                        disabled={loading}
+                        title="Delete Permanently"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {files.map((file) => (
-                  <tr key={file.id} className="border-b border-border transition">
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(file.id)}
-                        onChange={() => toggleSelect(file.id)}
-                        className="rounded-sm border-input"
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <span
-                          className="font-medium truncate max-w-xs sm:max-w-md block"
-                          title={file.name}
-                        >
-                          {file.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm text-muted-foreground">
-                      {file.connectedAccount.email} ({file.provider})
-                    </td>
-                    <td className="p-4 text-sm font-semibold">{formatBytes(file.sizeBytes)}</td>
-                    <td className="p-4 text-sm text-muted-foreground">
-                      {new Intl.DateTimeFormat('en', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      }).format(new Date(file.deletedAt))}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRestore([file.id])}
-                          disabled={loading}
-                          title="Restore"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handlePermanentDelete([file.id])}
-                          disabled={loading}
-                          title="Delete Permanently"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </Card>
     </>

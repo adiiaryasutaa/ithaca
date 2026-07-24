@@ -25,6 +25,8 @@ type ComboboxProps = {
   name?: string;
   className?: string;
   contentClassName?: string;
+  /** Set false for static option lists (no search box needed). @default true */
+  searchable?: boolean;
 };
 
 function Combobox({
@@ -39,6 +41,7 @@ function Combobox({
   name,
   className,
   contentClassName,
+  searchable = true,
 }: ComboboxProps) {
   const selected = React.useMemo(
     () => options.find((option) => option.value === value) ?? null,
@@ -88,18 +91,20 @@ function Combobox({
               contentClassName,
             )}
           >
-            <div className="flex items-center gap-2 border-b border-border px-3">
-              <HugeiconsIcon
-                icon={Search01Icon}
-                strokeWidth={2}
-                className="pointer-events-none size-3.5 shrink-0 text-muted-foreground"
-              />
-              <ComboboxPrimitive.Input
-                placeholder={searchPlaceholder}
-                className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-            <ComboboxPrimitive.Empty className="px-3 py-4 text-center text-xs text-muted-foreground">
+            {searchable ? (
+              <div className="flex items-center gap-2 border-b border-border px-3">
+                <HugeiconsIcon
+                  icon={Search01Icon}
+                  strokeWidth={2}
+                  className="pointer-events-none size-3.5 shrink-0 text-muted-foreground"
+                />
+                <ComboboxPrimitive.Input
+                  placeholder={searchPlaceholder}
+                  className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+            ) : null}
+            <ComboboxPrimitive.Empty className="px-3 py-4 text-center text-xs text-muted-foreground empty:hidden empty:p-0">
               {emptyText}
             </ComboboxPrimitive.Empty>
             <ComboboxPrimitive.List className="max-h-64 scroll-py-1 overflow-y-auto overscroll-contain p-1">

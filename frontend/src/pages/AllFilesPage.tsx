@@ -7,6 +7,7 @@ import {
   type MouseEvent,
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   Archive,
   CheckCircle,
@@ -14,8 +15,6 @@ import {
   Download,
   FolderInput,
   FolderPlus,
-  LayoutGrid,
-  List,
   RefreshCw,
   Star,
   Trash2,
@@ -28,7 +27,6 @@ import { DummyModal } from '@/components/drive/DummyModal';
 import { EmptyAreaContextMenu } from '@/components/drive/EmptyAreaContextMenu';
 import { FileContextMenu } from '@/components/drive/FileContextMenu';
 import { FileDetailsDrawer } from '@/components/drive/FileDetailsDrawer';
-import { FileGrid } from '@/components/drive/FileGrid';
 import { FileTable } from '@/components/drive/FileTable';
 import { FolderContextMenu } from '@/components/drive/FolderContextMenu';
 import { FolderGrid, type FolderSizeScale } from '@/components/drive/FolderGrid';
@@ -76,22 +74,6 @@ type ConnectedAccount = {
   displayName?: string | null;
   status: string;
 };
-
-const sizeActiveClasses: Record<FolderSizeScale, string> = {
-  xs: 'bg-card text-slate-800 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30 shadow-sm dark:shadow-none',
-  sm: 'bg-card text-slate-800 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30 shadow-sm dark:shadow-none',
-  md: 'bg-card text-slate-800 dark:bg-primary/20 dark:text-blue-300 dark:border-ring/30 shadow-sm dark:shadow-none',
-  lg: 'bg-card text-slate-800 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 shadow-sm dark:shadow-none',
-};
-
-type FileViewMode = 'list' | 'grid';
-
-const fileViewStorageKey = 'ithaca:all-files-view-mode';
-
-function getStoredFileViewMode(): FileViewMode {
-  const stored = localStorage.getItem(fileViewStorageKey);
-  return stored === 'grid' || stored === 'list' ? stored : 'list';
-}
 
 function mimeToKind(mimeType: string): FileItem['kind'] {
   if (mimeType.startsWith('image/')) return 'image';
@@ -253,12 +235,10 @@ export function AllFilesPage() {
   const [emptyContextMenu, setEmptyContextMenu] = useState<{ x: number; y: number; open: boolean }>(
     { x: 0, y: 0, open: false },
   );
-  const [message, setMessage] = useState('');
   const [gdrivePublicUrl, setGdrivePublicUrl] = useState('');
   const [makingPublic, setMakingPublic] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncingDrive, setSyncingDrive] = useState(false);
-  const [fileViewMode, setFileViewMode] = useState<FileViewMode>(getStoredFileViewMode);
   const { uploadFiles } = useUpload();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -268,18 +248,13 @@ export function AllFilesPage() {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviting, setInviting] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [folderSizeScale, setFolderSizeScale] = useState<FolderSizeScale>(() => {
+  const folderSizeScale: FolderSizeScale = (() => {
     const v = localStorage.getItem('ithaca:folder-size');
     return v === 'xs' || v === 'sm' || v === 'md' || v === 'lg' ? v : 'md';
-  });
+  })();
   const { setHeaderActions } = useDriveLayoutActions();
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [selectedTargetAccountId, setSelectedTargetAccountId] = useState('');
-
-  function changeFolderSize(scale: FolderSizeScale) {
-    setFolderSizeScale(scale);
-    localStorage.setItem('ithaca:folder-size', scale);
-  }
 
   async function loadFiles() {
     const params = new URLSearchParams();
@@ -324,18 +299,17 @@ export function AllFilesPage() {
   async function handleDropItem(fileId: string, targetFolderId: string) {
     const fileIds = selectedFileIds.has(fileId) ? Array.from(selectedFileIds) : [fileId];
     setLoading(true);
-    setMessage('');
     try {
       await apiFetch('/files/batch', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileIds, folderId: targetFolderId }),
       });
-      setMessage(`Successfully moved ${fileIds.length} item(s).`);
+      toast.success(`Successfully moved ${fileIds.length} item(s).`);
       loadAll().catch(() => undefined);
       setSelectedFileIds(new Set());
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to move items');
+      toast.error(error instanceof Error ? error.message : 'Failed to move items');
     } finally {
       setLoading(false);
     }
@@ -343,7 +317,7 @@ export function AllFilesPage() {
 
   useEffect(() => {
     loadAll().catch((error) =>
-      setMessage(error instanceof Error ? error.message : 'Failed to load files'),
+      toast.error(error instanceof Error ? error.message : 'Failed to load files'),
     );
     setSelectedFileIds(new Set());
   }, [activeFolderId, searchQuery]);
@@ -372,7 +346,7 @@ export function AllFilesPage() {
       if (event.ctrlKey && event.key.toLowerCase() === 'v' && cutFolder) {
         event.preventDefault();
         pasteFolder().catch((error) =>
-          setMessage(error instanceof Error ? error.message : 'Failed to paste folder'),
+          toast.error(error instanceof Error ? error.message : 'Failed to paste folder'),
         );
       }
     }
@@ -433,8 +407,6 @@ export function AllFilesPage() {
     event.preventDefault();
     if (selectedFiles.length === 0) return;
     setLoading(true);
-    setMessage('');
-
     const uploadingFiles = [...selectedFiles];
     const targetFolderId = activeFolderId || selectedFolderId;
     const targetAccountId = selectedTargetAccountId || null;
@@ -455,7 +427,6 @@ export function AllFilesPage() {
 
   async function syncGoogleDrive() {
     setSyncingDrive(true);
-    setMessage('');
     try {
       const response = await apiFetch<{
         results: { created: number; updated: number; deleted: number }[];
@@ -471,13 +442,13 @@ export function AllFilesPage() {
       }
       const accounts = response.results.length;
 
-      setMessage(
+      toast.success(
         `Google Drive synced. ${created} added, ${updated} updated, ${deleted} removed across ${accounts} account${accounts === 1 ? '' : 's'}.`,
       );
       await loadAll();
       window.dispatchEvent(new Event('ithaca:storage-changed'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to sync Google Drive');
+      toast.error(error instanceof Error ? error.message : 'Failed to sync Google Drive');
     } finally {
       setSyncingDrive(false);
     }
@@ -527,11 +498,6 @@ export function AllFilesPage() {
 
   function clearSelection() {
     setSelectedFileIds(new Set());
-  }
-
-  function changeFileViewMode(mode: FileViewMode) {
-    setFileViewMode(mode);
-    localStorage.setItem(fileViewStorageKey, mode);
   }
 
   function openFolderMenu(event: MouseEvent<HTMLElement>, folder: FolderItem) {
@@ -602,7 +568,6 @@ export function AllFilesPage() {
     const selectedIds = [...selectedFileIds];
     if (selectedIds.length === 0) return;
     setLoading(true);
-    setMessage('');
     try {
       const response = await fetch(`${API_URL}/files/batch-download`, {
         method: 'POST',
@@ -621,9 +586,9 @@ export function AllFilesPage() {
       link.click();
       URL.revokeObjectURL(url);
       clearSelection();
-      setMessage('Batch download complete.');
+      toast.success('Batch download complete.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Batch download failed');
+      toast.error(error instanceof Error ? error.message : 'Batch download failed');
     } finally {
       setLoading(false);
     }
@@ -694,19 +659,16 @@ export function AllFilesPage() {
       const data = await apiFetch<{ url: string | null }>(`/files/${activeFile.id}/view-url`);
       if (data.url) {
         await navigator.clipboard.writeText(data.url);
-        setMessage('Google Drive link copied to clipboard!');
-        setTimeout(() => setMessage(''), 2500);
+        toast.success('Google Drive link copied to clipboard!');
       } else {
         const shareData = await apiFetch<{ url: string }>(`/files/${activeFile.id}/share`, {
           method: 'POST',
         });
         await navigator.clipboard.writeText(shareData.url);
-        setMessage('Share link copied to clipboard!');
-        setTimeout(() => setMessage(''), 2500);
+        toast.success('Share link copied to clipboard!');
       }
     } catch (err: any) {
-      setMessage('Failed to copy link: ' + (err.message || err));
-      setTimeout(() => setMessage(''), 2500);
+      toast.error('Failed to copy link: ' + (err.message || err));
     }
     setContextMenu({ x: 0, y: 0, file: null });
   }
@@ -734,8 +696,7 @@ export function AllFilesPage() {
       url = `https://drive.google.com/open?id=${activeFolderForMenu.providerFolderId}`;
     }
     await navigator.clipboard.writeText(url);
-    setMessage('Folder link copied to clipboard!');
-    setTimeout(() => setMessage(''), 2500);
+    toast.success('Folder link copied to clipboard!');
     setFolderContextMenu({ x: 0, y: 0, folder: null });
   }
 
@@ -768,6 +729,7 @@ export function AllFilesPage() {
   async function copyShareLink() {
     await navigator.clipboard.writeText(shareUrl);
     setCopiedShareLink(true);
+    toast.success('Share link copied to clipboard.');
     window.setTimeout(() => setCopiedShareLink(false), 1600);
   }
 
@@ -797,7 +759,7 @@ export function AllFilesPage() {
     if (!folder?.id) return;
     setCutFolder(folder);
     setFolderContextMenu({ x: 0, y: 0, folder: null });
-    setMessage(`Folder "${folder.name}" ready to move. Open target folder and press Ctrl+V.`);
+    toast.success(`Folder "${folder.name}" ready to move. Open target folder and press Ctrl+V.`);
   }
 
   async function pasteFolder() {
@@ -806,7 +768,7 @@ export function AllFilesPage() {
       method: 'PATCH',
       body: JSON.stringify({ parentId: activeFolderId ?? null }),
     });
-    setMessage(`Folder "${cutFolder.name}" moved.`);
+    toast.success(`Folder "${cutFolder.name}" moved.`);
     setCutFolder(null);
     await loadFolders();
   }
@@ -827,31 +789,8 @@ export function AllFilesPage() {
   }, [activeFolderId]);
 
   useEffect(() => {
-    const sizeLabels: FolderSizeScale[] = ['xs', 'sm', 'md', 'lg'];
     setHeaderActions(
       <div className="flex items-center gap-2">
-        {/* Folder size scale picker */}
-        <div className="hidden sm:flex items-center gap-0.5 rounded-sm border border-border bg-muted p-0.5">
-          {sizeLabels.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => changeFolderSize(s)}
-              className={[
-                'rounded-sm px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-all border border-transparent',
-                folderSizeScale === s
-                  ? sizeActiveClasses[s]
-                  : 'text-muted-foreground hover:text-muted-foreground',
-              ].join(' ')}
-              aria-label={`Folder size ${s}`}
-              aria-pressed={folderSizeScale === s}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        {/* Divider */}
-        <div className="hidden sm:block h-6 w-px bg-accent" />
         <Button size="sm" onClick={() => setUploadOpen(true)}>
           <Upload className="h-3.5 w-3.5" />
           Upload
@@ -866,7 +805,7 @@ export function AllFilesPage() {
         </Button>
       </div>,
     );
-  }, [syncingDrive, folderSizeScale]);
+  }, [syncingDrive]);
 
   const recentFolders = folders.slice(0, 4);
   const moreFolders = folders.slice(4);
@@ -933,28 +872,7 @@ export function AllFilesPage() {
             <RefreshCw className={syncingDrive ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
             {syncingDrive ? 'Syncing...' : 'Sync'}
           </Button>
-          <div className="flex items-center gap-0.5 rounded-sm border border-border bg-muted p-0.5">
-            {(['xs', 'sm', 'md', 'lg'] as FolderSizeScale[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => changeFolderSize(s)}
-                className={[
-                  'rounded-sm px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-all border border-transparent',
-                  folderSizeScale === s
-                    ? sizeActiveClasses[s]
-                    : 'text-muted-foreground hover:text-muted-foreground',
-                ].join(' ')}
-                aria-label={`Folder size ${s}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
         </div>
-        {message ? (
-          <p className="mt-3 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
-        ) : null}
         {!activeFolder &&
           (recentFolders.length > 0 ? (
             <FolderGrid
@@ -1010,48 +928,36 @@ export function AllFilesPage() {
                   {selectedFileIds.size} selected
                 </span>
                 <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-3">
-                  <Button className="w-full" variant="outline" onClick={downloadBatchAsZip}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    variant="outline"
+                    onClick={downloadBatchAsZip}
+                  >
                     <Download className="h-4 w-4" />
                     ZIP
                   </Button>
-                  <Button className="w-full" variant="outline" onClick={() => setMoveOpen(true)}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    variant="outline"
+                    onClick={() => setMoveOpen(true)}
+                  >
                     <FolderInput className="h-4 w-4" />
                     Move
                   </Button>
                   <Button
-                    className="w-full"
+                    className="w-full sm:w-auto"
                     variant="destructive"
                     onClick={() => setDeleteOpen(true)}
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete
                   </Button>
-                  <Button className="w-full" variant="ghost" onClick={clearSelection}>
+                  <Button className="w-full sm:w-auto" variant="ghost" onClick={clearSelection}>
                     Clear
                   </Button>
                 </div>
               </div>
             ) : null}
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant={fileViewMode === 'grid' ? 'secondary' : 'outline'}
-              size="icon"
-              aria-label="Show files as grid"
-              aria-pressed={fileViewMode === 'grid'}
-              onClick={() => changeFileViewMode('grid')}
-            >
-              <LayoutGrid className="h-5 w-5" />
-            </Button>
-            <Button
-              variant={fileViewMode === 'list' ? 'secondary' : 'outline'}
-              size="icon"
-              aria-label="Show files as list"
-              aria-pressed={fileViewMode === 'list'}
-              onClick={() => changeFileViewMode('list')}
-            >
-              <List className="h-5 w-5" />
-            </Button>
           </div>
         </div>
         {cutFolder ? (
@@ -1071,25 +977,15 @@ export function AllFilesPage() {
             </p>
           </Card>
         ) : (
-          <Card className="mt-3 p-4 sm:p-5 bg-card border border-border dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
-            {fileViewMode === 'grid' ? (
-              <FileGrid
-                files={files}
-                selectedFileIds={selectedFileIds}
-                sizeScale={folderSizeScale}
-                onToggleFile={toggleFileSelection}
-                onFileContextMenu={openContext}
-              />
-            ) : (
-              <FileTable
-                files={files}
-                selectedFileIds={selectedFileIds}
-                allSelected={allVisibleSelected}
-                onToggleFile={toggleFileSelection}
-                onToggleAll={toggleAllVisibleFiles}
-                onFileContextMenu={openContext}
-              />
-            )}
+          <Card className="mt-3 min-w-0 overflow-x-auto p-0 bg-card border border-border dark:bg-transparent dark:border-0 dark:shadow-none">
+            <FileTable
+              files={files}
+              selectedFileIds={selectedFileIds}
+              allSelected={allVisibleSelected}
+              onToggleFile={toggleFileSelection}
+              onToggleAll={toggleAllVisibleFiles}
+              onFileContextMenu={openContext}
+            />
           </Card>
         )}
       </div>
@@ -1109,7 +1005,7 @@ export function AllFilesPage() {
         }}
         onPasteFolder={() => {
           pasteFolder().catch((error) =>
-            setMessage(error instanceof Error ? error.message : 'Failed to paste folder'),
+            toast.error(error instanceof Error ? error.message : 'Failed to paste folder'),
           );
           setEmptyContextMenu({ x: 0, y: 0, open: false });
         }}
@@ -1396,11 +1292,6 @@ export function AllFilesPage() {
               {copiedShareLink ? 'Copied!' : 'Copy Link'}
             </Button>
           </div>
-          {copiedShareLink ? (
-            <p className="rounded-sm bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-600">
-              Share link copied to clipboard.
-            </p>
-          ) : null}
 
           {activeFile?.accountProvider === 'google_drive' && (
             <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 grid gap-3">
@@ -1416,9 +1307,6 @@ export function AllFilesPage() {
               {gdrivePublicUrl ? (
                 <div className="grid gap-2">
                   <Input value={gdrivePublicUrl} readOnly />
-                  <p className="rounded-sm bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-600">
-                    Google Drive public link generated and copied to clipboard!
-                  </p>
                 </div>
               ) : (
                 <Button
@@ -1434,8 +1322,11 @@ export function AllFilesPage() {
                       );
                       setGdrivePublicUrl(res.url);
                       await navigator.clipboard.writeText(res.url);
+                      toast.success('Google Drive public link generated and copied to clipboard!');
                     } catch (err: any) {
-                      alert('Failed to update Google Drive permission: ' + (err.message || err));
+                      toast.error(
+                        'Failed to update Google Drive permission: ' + (err.message || err),
+                      );
                     } finally {
                       setMakingPublic(false);
                     }
@@ -1511,6 +1402,7 @@ export function AllFilesPage() {
             Role
             <Combobox
               className="h-11"
+              searchable={false}
               value={inviteRole}
               onValueChange={(role) => setInviteRole(role)}
               options={[

@@ -7,11 +7,24 @@ import { hashToken, randomToken } from '../../utils/crypto.js';
 export const apiKeyRouter = Router();
 apiKeyRouter.use(requireAuth);
 
-const createSchema = z.object({
-  name: z.string().trim().min(1).max(191),
-  expiresAt: z.string().datetime().nullable().optional(),
-});
-const scopes = ['files:upload'];
+const createSchema = z
+  .object({
+    name: z.string().trim().min(1).max(191),
+    expiresAt: z.string().datetime().nullable().optional(),
+    mode: z.enum(['upload', 'read']).default('upload'),
+    targetFolderId: z.string().trim().min(1).nullable().optional(),
+    targetFileId: z.string().trim().min(1).nullable().optional(),
+  })
+  .refine((data) => !(data.targetFolderId && data.targetFileId), {
+    message: 'targetFolderId and targetFileId are mutually exclusive.',
+    path: ['targetFileId'],
+  })
+  .refine((data) => !(data.mode === 'upload' && data.targetFileId), {
+    message: 'Upload-mode keys cannot be pinned to a file.',
+    path: ['targetFileId'],
+  });
+
+const targetSelect = { select: { id: true, name: true } };
 
 function serializeApiKey(apiKey: {
   id: string;
@@ -19,17 +32,27 @@ function serializeApiKey(apiKey: {
   keyPrefix: string;
   scopes: unknown;
   status: string;
+  targetFolderId: string | null;
+  targetFileId: string | null;
+  targetFolder?: { id: string; name: string } | null;
+  targetFile?: { id: string; name: string } | null;
   lastUsedAt: Date | null;
   expiresAt: Date | null;
   revokedAt: Date | null;
   createdAt: Date;
 }) {
+  const scopes = Array.isArray(apiKey.scopes) ? apiKey.scopes : [];
   return {
     id: apiKey.id,
     name: apiKey.name,
     keyPrefix: apiKey.keyPrefix,
-    scopes: Array.isArray(apiKey.scopes) ? apiKey.scopes : [],
+    scopes,
+    mode: scopes.includes('files:read') ? 'read' : 'upload',
     status: apiKey.status,
+    targetFolderId: apiKey.targetFolderId,
+    targetFileId: apiKey.targetFileId,
+    targetFolder: apiKey.targetFolder ?? null,
+    targetFile: apiKey.targetFile ?? null,
     lastUsedAt: apiKey.lastUsedAt?.toISOString() ?? null,
     expiresAt: apiKey.expiresAt?.toISOString() ?? null,
     revokedAt: apiKey.revokedAt?.toISOString() ?? null,
@@ -42,6 +65,7 @@ apiKeyRouter.get('/', async (req: AuthRequest, res, next) => {
     const apiKeys = await prisma.apiKey.findMany({
       where: { userId: req.user!.id },
       orderBy: { createdAt: 'desc' },
+      include: { targetFolder: targetSelect, targetFile: targetSelect },
     });
     return res.json({ apiKeys: apiKeys.map(serializeApiKey) });
   } catch (error) {
@@ -52,6 +76,21 @@ apiKeyRouter.get('/', async (req: AuthRequest, res, next) => {
 apiKeyRouter.post('/', async (req: AuthRequest, res, next) => {
   try {
     const body = createSchema.parse(req.body);
+    const targetFolderId = body.targetFolderId || null;
+    const targetFileId = body.targetFileId || null;
+
+    if (targetFolderId) {
+      await prisma.folder.findFirstOrThrow({
+        where: { id: targetFolderId, userId: req.user!.id, deletedAt: null },
+      });
+    }
+    if (targetFileId) {
+      await prisma.file.findFirstOrThrow({
+        where: { id: targetFileId, userId: req.user!.id, status: 'active' },
+      });
+    }
+
+    const scopes = body.mode === 'read' ? ['files:read'] : ['files:upload'];
     const secret = `9d_live_${randomToken(32)}`;
     const apiKey = await prisma.apiKey.create({
       data: {
@@ -61,7 +100,10 @@ apiKeyRouter.post('/', async (req: AuthRequest, res, next) => {
         keyHash: hashToken(secret),
         scopes,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+        targetFolderId,
+        targetFileId,
       },
+      include: { targetFolder: targetSelect, targetFile: targetSelect },
     });
     return res.status(201).json({ apiKey: serializeApiKey(apiKey), secret });
   } catch (error) {

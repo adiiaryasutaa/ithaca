@@ -8,6 +8,7 @@ import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
 import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
+import type { ApiKeyRequest } from '../../middleware/api-key.middleware.js';
 import {
   ensureGoogleAppFolder,
   getAuthedGoogleClient,
@@ -31,6 +32,7 @@ type UploadMeta = {
   folderId?: string;
 };
 type RoutingMode = 'most_available' | 'round_robin' | 'priority';
+type UploadRequest = AuthRequest & { apiKey?: ApiKeyRequest['apiKey'] };
 
 function logUpload(message: string, metadata?: Record<string, unknown>) {
   logger.info(metadata ?? {}, `[upload] ${message}`);
@@ -171,7 +173,7 @@ async function selectAccount(
   })[0]?.account;
 }
 
-export async function handleUpload(req: AuthRequest, res: Response, next: NextFunction) {
+export async function handleUpload(req: UploadRequest, res: Response, next: NextFunction) {
   try {
     logUpload('request started', {
       userId: req.user!.id,
@@ -187,8 +189,11 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
       headers: req.headers,
       limits: { files: 25, fileSize: env.MAX_UPLOAD_BYTES },
     });
+    const pinnedFolderId = req.apiKey?.targetFolderId ?? null;
     const fields: { sizeBytes?: bigint; fileName?: string; mimeType?: string; folderId?: string } =
-      {};
+      {
+        ...(pinnedFolderId ? { folderId: pinnedFolderId } : {}),
+      };
     let batchMeta: UploadMeta[] | null = null;
     let responded = false;
     let fileSeen = false;
@@ -474,8 +479,34 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
       if (name === 'sizeBytes') fields.sizeBytes = BigInt(value);
       if (name === 'fileName') fields.fileName = value;
       if (name === 'mimeType') fields.mimeType = value;
-      if (name === 'folderId') fields.folderId = value;
-      if (name === 'filesMeta') batchMeta = parseBatchMeta(value);
+      if (name === 'folderId') {
+        if (pinnedFolderId && value && value !== pinnedFolderId) {
+          void fail(
+            403,
+            'API_KEY_FOLDER_MISMATCH',
+            'This API key is pinned to a specific folder; folderId must match the pinned folder or be omitted.',
+          );
+          return;
+        }
+        fields.folderId = value || pinnedFolderId || undefined;
+      }
+      if (name === 'filesMeta') {
+        const meta = parseBatchMeta(value);
+        if (pinnedFolderId) {
+          const mismatch = meta.some((item) => item.folderId && item.folderId !== pinnedFolderId);
+          if (mismatch) {
+            void fail(
+              403,
+              'API_KEY_FOLDER_MISMATCH',
+              "This API key is pinned to a specific folder; each file's folderId must match the pinned folder or be omitted.",
+            );
+            return;
+          }
+          batchMeta = meta.map((item) => ({ ...item, folderId: item.folderId || pinnedFolderId }));
+        } else {
+          batchMeta = meta;
+        }
+      }
     });
 
     busboy.on('file', (name, fileStream, info) => {

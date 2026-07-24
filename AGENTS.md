@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Ithaca is a Google Drive storage gateway. It lets users register/login with email/password or Google, automatically connect the first Drive account during Google sign-in, connect additional Google Drive accounts, track combined quota, upload files through the backend into a dedicated Google Drive `Ithaca` folder, organize files in virtual folders, preview/download/share files, sync MySQL file records from Google Drive, invite other users to files/folders, and route uploads to a connected Drive account with enough free space.
+Ithaca is a Google Drive storage gateway. It lets users log in with email/password or Google, automatically connect the first Drive account during Google sign-in, connect additional Google Drive accounts, track combined quota, upload files through the backend into a dedicated Google Drive `Ithaca` folder, organize files in virtual folders, preview/download/share files, sync MySQL file records from Google Drive, invite other users to files/folders, and route uploads to a connected Drive account with enough free space.
 
 ## Repository Structure
 
@@ -60,7 +60,6 @@ Environment:
 - `FRONTEND_URL`
 - `JWT_ACCESS_SECRET`
 - `TOKEN_ENCRYPTION_KEY`
-- `RECAPTCHA_SECRET_KEY` (optional; enables captcha verification when paired with frontend site key)
 - `ACCESS_TOKEN_TTL_SECONDS`
 - `REFRESH_TOKEN_TTL_DAYS`
 - `MAX_UPLOAD_BYTES`
@@ -80,8 +79,7 @@ Backend conventions:
 - Convert `bigint` values to strings before sending JSON responses.
 - Keep Google-specific OAuth/Drive behavior in provider modules/services when possible.
 - Keep public-token routes outside `requireAuth`; verify token hash, status, and expiry before streaming/returning data.
-- Google sign-in/register uses one-time auth handoff tokens; never send app access/refresh tokens through URL query params.
-- Email/password registration verifies reCAPTCHA only when `RECAPTCHA_SECRET_KEY` is configured.
+- Google sign-in uses one-time auth handoff tokens; never send app access/refresh tokens through URL query params.
 
 Security rules:
 - Never commit `.env` files or secrets.
@@ -137,7 +135,6 @@ Commands:
 
 Environment:
 - `VITE_API_URL`: backend base URL. Vite embeds this at build time.
-- `VITE_RECAPTCHA_SITE_KEY`: optional reCAPTCHA site key. Vite embeds this at build time; blank disables captcha UI.
 
 Frontend conventions:
 - Use `@/*` imports for files under `frontend/src`.
@@ -158,7 +155,6 @@ General:
 - Authenticated routes expect `Authorization: Bearer <accessToken>` unless listed as public.
 
 Auth:
-- `POST /auth/register`
 - `POST /auth/login`
 - `GET /auth/google/url`
 - `GET /auth/google/callback`
@@ -260,7 +256,7 @@ Before finishing schema changes:
 - `cd backend && npm run build`
 
 Manual smoke test:
-- Register/login.
+- Login.
 - Open Settings.
 - Connect Google Drive.
 - Verify connected account appears.

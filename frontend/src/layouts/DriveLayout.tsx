@@ -34,6 +34,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { BrandLogo } from '@/components/drive/BrandLogo';
 import { Input } from '@/components/ui/input';
@@ -198,57 +199,7 @@ function Sidebar({
         </span>
       </div>
 
-      <div
-        ref={menuRef}
-        className="relative flex items-center gap-2.5 border-y border-border py-3 my-3"
-      >
-        {!profileImageUrl || avatarError ? (
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm border border-blue-400/20">
-            {(user?.name ?? user?.email ?? 'U').trim().charAt(0).toUpperCase()}
-          </div>
-        ) : (
-          <img
-            src={profileImageUrl}
-            alt="User avatar"
-            className="h-8 w-8 rounded-full border border-border object-cover"
-            onError={() => setAvatarError(true)}
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold text-foreground leading-none">
-            {user?.name ?? 'User'}
-          </p>
-          <p className="truncate text-xs text-muted-foreground mt-1">
-            {user?.email ?? 'Loading...'}
-          </p>
-        </div>
-        <button
-          type="button"
-          aria-label="Profile menu"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
-          className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-        {menuOpen ? (
-          <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-sm border border-border bg-card shadow-xl shadow-slate-950/10">
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                onLogout();
-              }}
-              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] font-bold text-destructive transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Log Out
-            </button>
-          </div>
-        ) : null}
-      </div>
-
-      <nav className="grid gap-1">
+      <nav className="mt-3 grid gap-1">
         {menu.map((item) =>
           item.disabled ? (
             <button
@@ -298,32 +249,83 @@ function Sidebar({
         ) : null}
       </nav>
 
-      <div className="mt-auto border-t border-border pt-4 text-[13px]">
-        <div className="mb-3 space-y-1.5">
-          {items.map(([label, value, color]) => (
-            <div
-              key={label}
-              className="flex items-center justify-between text-muted-foreground font-medium"
-            >
-              <span className="flex items-center gap-1.5">
-                <span className={cn('h-1.5 w-1.5 rounded-full', color)} />
-                {label}
-              </span>
-              <span className="font-semibold text-foreground">{value}</span>
+      <Card size="sm" className="mt-auto text-[13px] !overflow-visible">
+        <div ref={menuRef} className="relative flex items-center gap-2.5 px-(--card-spacing)">
+          {!profileImageUrl || avatarError ? (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm border border-blue-400/20">
+              {(user?.name ?? user?.email ?? 'U').trim().charAt(0).toUpperCase()}
             </div>
-          ))}
+          ) : (
+            <img
+              src={profileImageUrl}
+              alt="User avatar"
+              className="h-8 w-8 rounded-full border border-border object-cover"
+              onError={() => setAvatarError(true)}
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-bold text-foreground leading-none">
+              {user?.name ?? 'User'}
+            </p>
+            <p className="truncate text-xs text-muted-foreground mt-1">
+              {user?.email ?? 'Loading...'}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Profile menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+            className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+          {menuOpen ? (
+            <div className="absolute right-0 bottom-full z-50 mb-1 w-44 overflow-hidden rounded-sm border border-border bg-card shadow-xl shadow-slate-950/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onLogout();
+                }}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] font-bold text-destructive transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Log Out
+              </button>
+            </div>
+          ) : null}
         </div>
-        <div className="flex justify-between text-sm font-bold text-foreground">
-          <span>{formatBytes(storage?.usedBytes)} used</span>
-          <span className="text-muted-foreground">{formatBytes(storage?.totalBytes)}</span>
+
+        <div className="border-t border-border" />
+
+        <div className="px-(--card-spacing)">
+          <div className="mb-3 space-y-1.5">
+            {items.map(([label, value, color]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between text-muted-foreground font-medium"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', color)} />
+                  {label}
+                </span>
+                <span className="font-semibold text-foreground">{value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between text-sm font-bold text-foreground">
+            <span>{formatBytes(storage?.usedBytes)} used</span>
+            <span className="text-muted-foreground">{formatBytes(storage?.totalBytes)}</span>
+          </div>
+          <div className="my-2 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-        <div className="my-2 h-1.5 rounded-full bg-accent overflow-hidden">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+      </Card>
     </aside>
   );
 }
@@ -370,14 +372,6 @@ export function DriveLayout() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterKind, setFilterKind] = useState(searchParams.get('kind') ?? '');
   const [filterAccountId, setFilterAccountId] = useState(searchParams.get('accountId') ?? '');
-  const [filterMinSize, setFilterMinSize] = useState(() => {
-    const min = searchParams.get('minSize');
-    return min ? String(Math.round(Number(min) / (1024 * 1024))) : '';
-  });
-  const [filterMaxSize, setFilterMaxSize] = useState(() => {
-    const max = searchParams.get('maxSize');
-    return max ? String(Math.round(Number(max) / (1024 * 1024))) : '';
-  });
   const [filterStartDate, setFilterStartDate] = useState(() => {
     const raw = searchParams.get('startDate');
     return raw ? raw.split('T')[0] : '';
@@ -423,14 +417,6 @@ export function DriveLayout() {
     setSearchValue(searchParams.get('q') ?? '');
     setFilterKind(searchParams.get('kind') ?? '');
     setFilterAccountId(searchParams.get('accountId') ?? '');
-    setFilterMinSize(() => {
-      const min = searchParams.get('minSize');
-      return min ? String(Math.round(Number(min) / (1024 * 1024))) : '';
-    });
-    setFilterMaxSize(() => {
-      const max = searchParams.get('maxSize');
-      return max ? String(Math.round(Number(max) / (1024 * 1024))) : '';
-    });
 
     const rawStart = searchParams.get('startDate');
     setFilterStartDate(rawStart ? rawStart.split('T')[0] : '');
@@ -458,15 +444,6 @@ export function DriveLayout() {
     if (filterKind) nextParams.set('kind', filterKind);
     if (filterAccountId) nextParams.set('accountId', filterAccountId);
 
-    if (filterMinSize) {
-      const bytes = Number(filterMinSize) * 1024 * 1024;
-      if (!isNaN(bytes)) nextParams.set('minSize', String(bytes));
-    }
-    if (filterMaxSize) {
-      const bytes = Number(filterMaxSize) * 1024 * 1024;
-      if (!isNaN(bytes)) nextParams.set('maxSize', String(bytes));
-    }
-
     if (filterStartDate) {
       nextParams.set('startDate', new Date(filterStartDate).toISOString());
     }
@@ -481,8 +458,6 @@ export function DriveLayout() {
   function clearFilters() {
     setFilterKind('');
     setFilterAccountId('');
-    setFilterMinSize('');
-    setFilterMaxSize('');
     setFilterStartDate('');
     setFilterEndDate('');
     setFiltersOpen(false);
@@ -598,7 +573,7 @@ export function DriveLayout() {
                   >
                     <Bell className="h-5 w-5" />
                     {!infoOpen ? (
-                      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
                     ) : null}
                   </Button>
                   {infoOpen ? <SystemInfoDropdown storage={storage} /> : null}
@@ -607,23 +582,23 @@ export function DriveLayout() {
             </div>
             <div className="relative w-full min-w-0 flex-1 lg:max-w-sm xl:max-w-xl">
               <form onSubmit={searchFiles} className="relative w-full">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="Search Documents"
-                  className="pl-11 pr-12"
+                  className="pl-7 pr-7"
                 />
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(!filtersOpen)}
                   className={cn(
-                    'absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors',
+                    'absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors',
                     filtersOpen && 'text-primary hover:text-primary',
                   )}
                   aria-label="Search filters"
                 >
-                  <SlidersHorizontal className="h-5 w-5" />
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
                 </button>
               </form>
 
@@ -650,6 +625,7 @@ export function DriveLayout() {
                       </label>
                       <Combobox
                         className="mt-1"
+                        searchable={false}
                         value={filterKind}
                         onValueChange={(kind) => setFilterKind(kind)}
                         options={[
@@ -680,30 +656,6 @@ export function DriveLayout() {
                           })),
                         ]}
                       />
-                    </div>
-
-                    {/* Size range */}
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Size Range (MB)
-                      </label>
-                      <div className="mt-1 flex items-center gap-2">
-                        <input
-                          type="number"
-                          placeholder="Min"
-                          value={filterMinSize}
-                          onChange={(e) => setFilterMinSize(e.target.value)}
-                          className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
-                        />
-                        <span className="text-muted-foreground text-xs font-semibold">to</span>
-                        <input
-                          type="number"
-                          placeholder="Max"
-                          value={filterMaxSize}
-                          onChange={(e) => setFilterMaxSize(e.target.value)}
-                          className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
-                        />
-                      </div>
                     </div>
 
                     {/* Date range */}
@@ -763,7 +715,7 @@ export function DriveLayout() {
               >
                 <Bell className="h-5 w-5" />
                 {!infoOpen ? (
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
                 ) : null}
               </Button>
               {infoOpen ? <SystemInfoDropdown storage={storage} /> : null}

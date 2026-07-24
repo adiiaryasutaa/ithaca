@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HardDrive } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { apiFetch } from '@/lib/api';
 import { setAuthSession, type AuthUser } from '@/lib/auth';
@@ -17,6 +18,7 @@ export function GoogleAuthPage() {
   useEffect(() => {
     if (status === 'error' || !token) {
       setMessage('Google sign-in failed. Please try again.');
+      toast.error('Google sign-in failed. Please try again.');
       return;
     }
 
@@ -29,11 +31,12 @@ export function GoogleAuthPage() {
         setAuthSession(data.accessToken, data.refreshToken, data.user);
         navigate('/all-files', { replace: true });
       })
-      .catch((error) =>
-        setMessage(
-          error instanceof Error ? error.message : 'Google sign-in failed. Please try again.',
-        ),
-      );
+      .catch((error) => {
+        const errMessage =
+          error instanceof Error ? error.message : 'Google sign-in failed. Please try again.';
+        setMessage(errMessage);
+        toast.error(errMessage);
+      });
   }, [navigate, status, token]);
 
   return (

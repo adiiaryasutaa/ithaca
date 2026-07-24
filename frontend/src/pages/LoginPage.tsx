@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { HardDrive } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { GoogleLogo } from '@/components/auth/GoogleLogo';
@@ -14,18 +15,16 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function continueWithGoogle() {
     setGoogleLoading(true);
-    setError('');
     try {
       const data = await apiFetch<{ url: string }>('/auth/google/url', { skipAuth: true });
       window.location.href = data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google login failed');
+      toast.error(err instanceof Error ? err.message : 'Google login failed');
       setGoogleLoading(false);
     }
   }
@@ -33,7 +32,6 @@ export function LoginPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
-    setError('');
     try {
       const data = await apiFetch<AuthResponse>('/auth/login', {
         method: 'POST',
@@ -43,7 +41,7 @@ export function LoginPage() {
       setAuthSession(data.accessToken, data.refreshToken, data.user);
       navigate('/all-files');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      toast.error(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -75,9 +73,6 @@ export function LoginPage() {
               required
             />
           </label>
-          {error ? (
-            <p className="rounded-sm bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
-          ) : null}
           <Button disabled={loading}>{loading ? 'Logging in...' : 'Login'}</Button>
         </form>
         <div className="mt-4 grid gap-3">
@@ -91,12 +86,6 @@ export function LoginPage() {
             {googleLoading ? 'Redirecting...' : 'Continue with Google'}
           </Button>
         </div>
-        <p className="mt-5 text-center text-sm text-muted-foreground">
-          No account?{' '}
-          <Link className="font-bold text-primary" to="/register">
-            Register
-          </Link>
-        </p>
       </Card>
     </main>
   );

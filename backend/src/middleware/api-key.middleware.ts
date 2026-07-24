@@ -4,7 +4,12 @@ import { hashToken } from '../utils/crypto.js';
 
 export type ApiKeyRequest = Request & {
   user?: { id: string; sessionId: string };
-  apiKey?: { id: string; scopes: string[] };
+  apiKey?: {
+    id: string;
+    scopes: string[];
+    targetFolderId: string | null;
+    targetFileId: string | null;
+  };
 };
 
 function normalizeScopes(value: unknown) {
@@ -34,7 +39,12 @@ export function requireApiKey(scope: string) {
           .status(403)
           .json({ code: 'API_KEY_FORBIDDEN', message: 'API key does not have required scope.' });
       req.user = { id: apiKey.userId, sessionId: `api-key:${apiKey.id}` };
-      req.apiKey = { id: apiKey.id, scopes };
+      req.apiKey = {
+        id: apiKey.id,
+        scopes,
+        targetFolderId: apiKey.targetFolderId,
+        targetFileId: apiKey.targetFileId,
+      };
       await prisma.apiKey
         .update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } })
         .catch(() => undefined);

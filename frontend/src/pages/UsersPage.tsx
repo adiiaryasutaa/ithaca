@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { UserPlus, Pencil, Ban, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirmToast } from '@/lib/confirm-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -123,8 +124,15 @@ export function UsersPage() {
     }
   }
 
-  async function disableUser(user: User) {
-    if (!confirm(`Disable ${user.email}? They will no longer be able to sign in.`)) return;
+  function disableUser(user: User) {
+    confirmToast(
+      `Disable ${user.email}? They will no longer be able to sign in.`,
+      () => performDisable(user),
+      'Disable',
+    );
+  }
+
+  async function performDisable(user: User) {
     try {
       await apiFetch(`/users/${user.id}`, { method: 'DELETE' });
       toast.success('User disabled');
@@ -284,6 +292,7 @@ export function UsersPage() {
                 <Label htmlFor="user-role">Role</Label>
                 <Combobox
                   id="user-role"
+                  searchable={false}
                   value={form.role}
                   onValueChange={(role) => setForm({ ...form, role })}
                   options={[
@@ -297,6 +306,7 @@ export function UsersPage() {
                   <Label htmlFor="user-status">Status</Label>
                   <Combobox
                     id="user-status"
+                    searchable={false}
                     value={form.status}
                     onValueChange={(status) => setForm({ ...form, status })}
                     options={[

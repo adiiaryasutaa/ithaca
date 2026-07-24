@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Clock, FileArchive, Folder, Trash2, Users, UserCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { MetricCard } from '@/components/drive/MetricCard';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ type InviteTarget = {
 };
 type Invite = {
   id: string;
-  email: string;
+  email: string;f
   role: string;
   status: string;
   targetType: 'file' | 'folder';
@@ -38,7 +39,6 @@ function ResourceIcon({ type }: { type: 'file' | 'folder' }) {
 export function SharedPage() {
   const [sentInvites, setSentInvites] = useState<Invite[]>([]);
   const [receivedInvites, setReceivedInvites] = useState<Invite[]>([]);
-  const [message, setMessage] = useState('');
   const pendingCount = sentInvites.filter((invite) => invite.status === 'pending').length;
   const acceptedCount = sentInvites.filter((invite) => invite.status === 'accepted').length;
 
@@ -50,7 +50,7 @@ export function SharedPage() {
 
   useEffect(() => {
     loadInvites().catch((error) =>
-      setMessage(error instanceof Error ? error.message : 'Failed to load shared resources'),
+      toast.error(error instanceof Error ? error.message : 'Failed to load shared resources'),
     );
     window.addEventListener('ithaca:invites-changed', loadInvites);
     return () => window.removeEventListener('ithaca:invites-changed', loadInvites);
@@ -67,9 +67,6 @@ export function SharedPage() {
         title="Shared"
         description="Files and folders shared with members or shared with you."
       />
-      {message ? (
-        <p className="mt-5 rounded-sm bg-primary/10 p-3 text-sm text-primary">{message}</p>
-      ) : null}
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         <MetricCard
           label="Shared Resources"
@@ -82,7 +79,7 @@ export function SharedPage() {
 
       <Card className="mt-8 p-5">
         <h2 className="font-extrabold">Shared With You</h2>
-        <div className="mt-4 grid gap-3">
+        <div className="grid gap-3">
           {receivedInvites.length === 0 ? (
             <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
               No files or folders have been shared with you yet.
@@ -123,7 +120,7 @@ export function SharedPage() {
 
       <Card className="mt-6 p-5">
         <h2 className="font-extrabold">Resources You Shared</h2>
-        <div className="mt-4 grid gap-3">
+        <div className="grid gap-3">
           {sentInvites.length === 0 ? (
             <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
               No files or folders shared yet. Use Invite Members from the top bar.
