@@ -153,6 +153,7 @@ Frontend conventions:
 General:
 - `GET /health`
 - Authenticated routes expect `Authorization: Bearer <accessToken>` unless listed as public.
+- Every authenticated route serves one shared workspace: responses are never filtered by the calling user. See the tenancy rule under Agent Rules.
 
 Auth:
 - `POST /auth/login`
@@ -271,6 +272,9 @@ Manual smoke test:
 
 ## Agent Rules
 
+- Ithaca is a single shared workspace, not multi-tenant. `userId` columns record who created a row; they must never be used to filter reads or to gate mutations. Do not add `where: { userId: req.user!.id }` to a new route, and keep passing `userId` in `create` data (the columns are NOT NULL).
+- Read the routing-policy singleton through `getOrCreateRoutingPolicy()` (`backend/src/modules/storage/routing-policy.service.ts`); there is one policy row for the whole app.
+- Never hard-delete a `User` row (`onDelete: Cascade` would take shared files, folders and connected accounts with it). Disable instead.
 - Prefer small, targeted changes.
 - Preserve existing architecture and naming.
 - Do not introduce new dependencies unless necessary.

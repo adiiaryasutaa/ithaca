@@ -32,9 +32,9 @@ export function createS3Client(config: S3Config) {
   });
 }
 
-export async function getS3ConfigForAccount(accountId: string, userId?: string) {
+export async function getS3ConfigForAccount(accountId: string) {
   return prisma.s3StorageConfig.findFirstOrThrow({
-    where: { connectedAccountId: accountId, status: 'active', ...(userId ? { userId } : {}) },
+    where: { connectedAccountId: accountId, status: 'active' },
   });
 }
 
@@ -54,11 +54,10 @@ function safeFileName(name: string) {
 
 export function buildS3ObjectKey(
   config: Pick<S3Config, 'prefix'>,
-  userId: string,
   fileId: string,
   fileName: string,
 ) {
-  return `${config.prefix.replace(/^\/+|\/+$/g, '')}/${userId}/${fileId}/${safeFileName(fileName)}`;
+  return `${config.prefix.replace(/^\/+|\/+$/g, '')}/${fileId}/${safeFileName(fileName)}`;
 }
 
 export async function uploadS3Object(

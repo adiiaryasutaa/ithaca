@@ -31,7 +31,7 @@ async function syncQuotaForAccount(account: { id: string; provider: string }) {
 connectedAccountRouter.get('/', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const accounts = await prisma.connectedAccount.findMany({
-      where: { userId: req.user!.id, status: 'connected' },
+      where: { status: 'connected' },
       include: { storageAccount: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -41,7 +41,7 @@ connectedAccountRouter.get('/', requireAuth, async (req: AuthRequest, res, next)
     const syncedAccounts =
       missingQuota.length > 0
         ? await prisma.connectedAccount.findMany({
-            where: { userId: req.user!.id, status: 'connected' },
+            where: { status: 'connected' },
             include: { storageAccount: true },
             orderBy: { createdAt: 'desc' },
           })
@@ -74,7 +74,6 @@ async function createGoogleConnectUrl(req: AuthRequest) {
     ? await prisma.providerConfig.findFirstOrThrow({
         where: {
           id: query.providerConfigId,
-          OR: [{ userId: req.user!.id }, { userId: null }],
           provider: 'google_drive',
           status: 'active',
         },
@@ -113,8 +112,7 @@ connectedAccountRouter.post('/s3', requireAuth, async (req: AuthRequest, res, ne
     const providerAccountId = `${body.bucket}:${body.endpoint || body.region}`;
     const existingAccount = await prisma.connectedAccount.findUnique({
       where: {
-        userId_provider_providerAccountId: {
-          userId: req.user!.id,
+        provider_providerAccountId: {
           provider: 's3',
           providerAccountId,
         },
@@ -259,8 +257,7 @@ connectedAccountRouter.get('/google/callback', async (req, res, next) => {
       });
       const existingAccount = await prisma.connectedAccount.findUnique({
         where: {
-          userId_provider_providerAccountId: {
-            userId: user.id,
+          provider_providerAccountId: {
             provider: 'google_drive',
             providerAccountId,
           },
@@ -278,8 +275,7 @@ connectedAccountRouter.get('/google/callback', async (req, res, next) => {
       }
       const account = await prisma.connectedAccount.upsert({
         where: {
-          userId_provider_providerAccountId: {
-            userId: user.id,
+          provider_providerAccountId: {
             provider: 'google_drive',
             providerAccountId,
           },
@@ -332,8 +328,7 @@ connectedAccountRouter.get('/google/callback', async (req, res, next) => {
         .json({ code: 'GOOGLE_OAUTH_STATE_INVALID', message: 'OAuth state expired.' });
     const existingAccount = await prisma.connectedAccount.findUnique({
       where: {
-        userId_provider_providerAccountId: {
-          userId: oauthState.userId,
+        provider_providerAccountId: {
           provider: 'google_drive',
           providerAccountId,
         },
@@ -349,8 +344,7 @@ connectedAccountRouter.get('/google/callback', async (req, res, next) => {
 
     const account = await prisma.connectedAccount.upsert({
       where: {
-        userId_provider_providerAccountId: {
-          userId: oauthState.userId,
+        provider_providerAccountId: {
           provider: 'google_drive',
           providerAccountId,
         },
@@ -394,7 +388,7 @@ connectedAccountRouter.post('/:id/sync-quota', requireAuth, async (req: AuthRequ
   try {
     const accountId = String(req.params.id);
     const account = await prisma.connectedAccount.findFirstOrThrow({
-      where: { id: accountId, userId: req.user!.id },
+      where: { id: accountId },
     });
     const quota = await syncQuotaForAccount(account);
     return res.json({
@@ -415,7 +409,7 @@ connectedAccountRouter.delete('/:id', requireAuth, async (req: AuthRequest, res,
   try {
     const accountId = String(req.params.id);
     await prisma.connectedAccount.updateMany({
-      where: { id: accountId, userId: req.user!.id },
+      where: { id: accountId },
       data: { status: 'disconnected' },
     });
     return res.json({ status: 'ok' });

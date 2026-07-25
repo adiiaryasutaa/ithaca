@@ -185,9 +185,7 @@ export function TrashPage() {
                   <td className="px-4 py-3 text-muted-foreground">
                     {file.connectedAccount.email} ({file.provider})
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatBytes(file.sizeBytes)}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatBytes(file.sizeBytes)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Intl.DateTimeFormat('en', {
                       dateStyle: 'medium',

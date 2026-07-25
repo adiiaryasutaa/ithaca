@@ -113,8 +113,7 @@ authRouter.get('/google/callback', async (req, res) => {
     });
     const existingAccount = await prisma.connectedAccount.findUnique({
       where: {
-        userId_provider_providerAccountId: {
-          userId: user.id,
+        provider_providerAccountId: {
           provider: 'google_drive',
           providerAccountId,
         },
@@ -127,8 +126,7 @@ authRouter.get('/google/callback', async (req, res) => {
 
     const account = await prisma.connectedAccount.upsert({
       where: {
-        userId_provider_providerAccountId: {
-          userId: user.id,
+        provider_providerAccountId: {
           provider: 'google_drive',
           providerAccountId,
         },

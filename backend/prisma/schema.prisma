@@ -165,7 +165,7 @@ model ConnectedAccount {
   uploadSessions        UploadSession[]
   s3StorageConfig       S3StorageConfig?
 
-  @@unique([userId, provider, providerAccountId])
+  @@unique([provider, providerAccountId])
   @@index([userId])
   @@index([userId, status, createdAt])
   @@map("connected_accounts")

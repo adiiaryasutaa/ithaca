@@ -4,14 +4,16 @@ import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.
 
 export const auditLogRouter = Router();
 
-auditLogRouter.get('/', requireAuth, async (req: AuthRequest, res, next) => {
+auditLogRouter.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
   try {
     const logs = await prisma.auditLog.findMany({
-      where: { userId: req.user!.id },
       orderBy: { createdAt: 'desc' },
       take: 100,
+      include: { user: { select: { email: true } } },
     });
-    return res.json({ logs });
+    return res.json({
+      logs: logs.map(({ user, ...log }) => ({ ...log, actorEmail: user?.email ?? null })),
+    });
   } catch (error) {
     return next(error);
   }

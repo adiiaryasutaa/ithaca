@@ -20,6 +20,10 @@ import {
   syncS3Quota,
   uploadS3Object,
 } from '../s3/s3.service.js';
+import {
+  getOrCreateRoutingPolicy,
+  normalizePriorityAccountIds,
+} from '../storage/routing-policy.service.js';
 import { createAuditLog } from '../../utils/audit.js';
 
 export const uploadRouter = Router();
@@ -51,12 +55,6 @@ function syncQuotaInBackground(accountId: string, sessionId: string) {
     );
 }
 
-function normalizePriorityAccountIds(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : [];
-}
-
 function byPriority<T extends { account: { id: string; createdAt: Date } }>(
   items: T[],
   priorityAccountIds: string[],
@@ -73,14 +71,13 @@ function byPriority<T extends { account: { id: string; createdAt: Date } }>(
 }
 
 async function selectAccount(
-  userId: string,
+  requestUserId: string,
   sizeBytes: bigint,
   reservedBytesByAccount = new Map<string, bigint>(),
   targetAccountId?: string | null,
 ) {
   const accounts = await prisma.connectedAccount.findMany({
     where: {
-      userId,
       provider: { in: ['google_drive', 's3'] },
       status: 'connected',
       ...(targetAccountId ? { id: targetAccountId } : {}),
@@ -117,7 +114,7 @@ async function selectAccount(
   );
 
   const fresh = await prisma.connectedAccount.findMany({
-    where: { userId, provider: { in: ['google_drive', 's3'] }, status: 'connected' },
+    where: { provider: { in: ['google_drive', 's3'] }, status: 'connected' },
     include: { storageAccount: true },
   });
 
@@ -139,11 +136,7 @@ async function selectAccount(
     return target?.account ?? null;
   }
 
-  const policy = await prisma.uploadRoutingPolicy.upsert({
-    where: { userId },
-    create: { userId, mode: 'most_available', priorityAccountIds: [] },
-    update: {},
-  });
+  const policy = await getOrCreateRoutingPolicy(requestUserId);
   const mode = (
     ['most_available', 'round_robin', 'priority'].includes(policy.mode)
       ? policy.mode
@@ -158,7 +151,7 @@ async function selectAccount(
     const selected =
       ordered[policy.roundRobinCursor % ordered.length]?.account ?? ordered[0]?.account ?? null;
     await prisma.uploadRoutingPolicy.update({
-      where: { userId },
+      where: { id: policy.id },
       data: { roundRobinCursor: policy.roundRobinCursor + 1 },
     });
     return selected;
@@ -272,7 +265,7 @@ export async function handleUpload(req: UploadRequest, res: Response, next: Next
         let targetAccountId: string | undefined = undefined;
         if (folderId) {
           const folderRecord = await prisma.folder.findFirstOrThrow({
-            where: { id: folderId, userId: req.user!.id, deletedAt: null },
+            where: { id: folderId, deletedAt: null },
           });
           if (folderRecord.connectedAccountId) {
             targetAccountId = folderRecord.connectedAccountId;
@@ -332,7 +325,7 @@ export async function handleUpload(req: UploadRequest, res: Response, next: Next
         let uploadedName = fileName;
         let uploadedMimeType = meta.mimeType;
         if (account.provider === 's3') {
-          const config = await getS3ConfigForAccount(account.id, req.user!.id);
+          const config = await getS3ConfigForAccount(account.id);
           const provisionalFile = await prisma.file.create({
             data: {
               userId: req.user!.id,
@@ -347,7 +340,7 @@ export async function handleUpload(req: UploadRequest, res: Response, next: Next
             },
           });
           s3FileId = provisionalFile.id;
-          providerFileId = buildS3ObjectKey(config, req.user!.id, provisionalFile.id, fileName);
+          providerFileId = buildS3ObjectKey(config, provisionalFile.id, fileName);
           await uploadS3Object(config, providerFileId, Readable.from(fileBuffer), meta.mimeType);
           await prisma.file.update({
             where: { id: provisionalFile.id },
@@ -371,7 +364,7 @@ export async function handleUpload(req: UploadRequest, res: Response, next: Next
           let targetParentId = appFolderId;
           if (folderId) {
             const folderRecord = await prisma.folder.findFirst({
-              where: { id: folderId, userId: req.user!.id },
+              where: { id: folderId },
             });
             if (folderRecord?.providerFolderId) {
               targetParentId = folderRecord.providerFolderId;
@@ -581,7 +574,7 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
     let targetAccountId = body.targetAccountId;
     if (folderId) {
       const folderRecord = await prisma.folder.findFirstOrThrow({
-        where: { id: folderId, userId: req.user!.id, deletedAt: null },
+        where: { id: folderId, deletedAt: null },
       });
       if (folderRecord.connectedAccountId) {
         targetAccountId = folderRecord.connectedAccountId;
@@ -615,7 +608,7 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
     let targetParentId = appFolderId;
     if (folderId) {
       const folderRecord = await prisma.folder.findFirst({
-        where: { id: folderId, userId: req.user!.id },
+        where: { id: folderId },
       });
       if (folderRecord?.providerFolderId) {
         targetParentId = folderRecord.providerFolderId;
@@ -673,7 +666,7 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
 uploadRouter.get('/resumable/status/:id', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const session = await prisma.uploadSession.findFirstOrThrow({
-      where: { id: String(req.params.id), userId: req.user!.id },
+      where: { id: String(req.params.id) },
     });
 
     if (session.status === 'completed') {
@@ -685,7 +678,7 @@ uploadRouter.get('/resumable/status/:id', requireAuth, async (req: AuthRequest, 
     }
 
     const account = await prisma.connectedAccount.findFirstOrThrow({
-      where: { id: session.targetConnectedAccountId, userId: req.user!.id },
+      where: { id: session.targetConnectedAccountId },
     });
     const auth = await getAuthedGoogleClient(account);
     const token = await auth.getAccessToken();
@@ -722,7 +715,7 @@ uploadRouter.get('/resumable/status/:id', requireAuth, async (req: AuthRequest, 
 uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const session = await prisma.uploadSession.findFirstOrThrow({
-      where: { id: String(req.params.id), userId: req.user!.id },
+      where: { id: String(req.params.id) },
     });
 
     const rangeHeader = req.headers['content-range'];
@@ -751,7 +744,7 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
     }
 
     const account = await prisma.connectedAccount.findFirstOrThrow({
-      where: { id: session.targetConnectedAccountId, userId: req.user!.id },
+      where: { id: session.targetConnectedAccountId },
     });
     const auth = await getAuthedGoogleClient(account);
     const drive = google.drive({ version: 'v3', auth });
@@ -792,7 +785,7 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
       }
 
       let existingFile = await prisma.file.findFirst({
-        where: { providerFileId: fileMeta.id, userId: req.user!.id },
+        where: { providerFileId: fileMeta.id },
       });
 
       if (!existingFile) {

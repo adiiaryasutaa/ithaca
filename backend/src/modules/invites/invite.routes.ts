@@ -35,10 +35,10 @@ type TargetRecord = {
   folderId?: string | null;
 };
 
-async function assertTargetOwner(userId: string, targetType: string, targetId: string) {
+async function assertTargetExists(targetType: string, targetId: string) {
   if (targetType === 'file')
-    return prisma.file.findFirstOrThrow({ where: { id: targetId, userId, status: 'active' } });
-  return prisma.folder.findFirstOrThrow({ where: { id: targetId, userId, deletedAt: null } });
+    return prisma.file.findFirstOrThrow({ where: { id: targetId, status: 'active' } });
+  return prisma.folder.findFirstOrThrow({ where: { id: targetId, deletedAt: null } });
 }
 
 async function resolveTargets(invites: InviteRecord[]) {
@@ -102,7 +102,7 @@ inviteRouter.get('/', async (req: AuthRequest, res, next) => {
     });
     const [sent, received] = await Promise.all([
       prisma.workspaceInvite.findMany({
-        where: { inviterId: req.user!.id, revokedAt: null, targetId: { not: '' } },
+        where: { revokedAt: null, targetId: { not: '' } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.workspaceInvite.findMany({
@@ -160,7 +160,7 @@ inviteRouter.post('/', async (req: AuthRequest, res, next) => {
       return res
         .status(400)
         .json({ code: 'INVITE_SELF_NOT_ALLOWED', message: 'You cannot invite yourself.' });
-    await assertTargetOwner(req.user!.id, body.targetType, body.targetId);
+    await assertTargetExists(body.targetType, body.targetId);
     const existingUser = await prisma.user.findUnique({
       where: { email },
       select: { id: true, name: true, email: true },
@@ -206,7 +206,7 @@ inviteRouter.post('/', async (req: AuthRequest, res, next) => {
 inviteRouter.delete('/:id', async (req: AuthRequest, res, next) => {
   try {
     const result = await prisma.workspaceInvite.updateMany({
-      where: { id: String(req.params.id), inviterId: req.user!.id, revokedAt: null },
+      where: { id: String(req.params.id), revokedAt: null },
       data: { status: 'revoked', revokedAt: new Date() },
     });
     if (result.count === 0)

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
+import { getOrCreateRoutingPolicy, normalizePriorityAccountIds } from './routing-policy.service.js';
 
 export const storageRouter = Router();
 storageRouter.use(requireAuth);
@@ -19,24 +20,10 @@ const routingPolicySchema = z.object({
   priorityAccountIds: z.array(z.string().min(1)).max(100).optional(),
 });
 
-function normalizePriorityAccountIds(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : [];
-}
-
-async function getOrCreateRoutingPolicy(userId: string) {
-  return prisma.uploadRoutingPolicy.upsert({
-    where: { userId },
-    create: { userId, mode: 'most_available', priorityAccountIds: [] },
-    update: {},
-  });
-}
-
-storageRouter.get('/summary', async (req: AuthRequest, res, next) => {
+storageRouter.get('/summary', async (_req: AuthRequest, res, next) => {
   try {
     const accounts = await prisma.connectedAccount.findMany({
-      where: { userId: req.user!.id, status: 'connected' },
+      where: { status: 'connected' },
       include: { storageAccount: true },
     });
     const summary = accounts.reduce(
@@ -94,15 +81,15 @@ storageRouter.patch('/routing-policy', async (req: AuthRequest, res, next) => {
       accountIds.length === 0
         ? []
         : await prisma.connectedAccount.findMany({
-            where: { id: { in: accountIds }, userId: req.user!.id, status: 'connected' },
+            where: { id: { in: accountIds }, status: 'connected' },
             select: { id: true },
           });
     const validIds = new Set(validAccounts.map((account) => account.id));
     const priorityAccountIds = accountIds.filter((id) => validIds.has(id));
-    const policy = await prisma.uploadRoutingPolicy.upsert({
-      where: { userId: req.user!.id },
-      create: { userId: req.user!.id, mode: body.mode, priorityAccountIds, roundRobinCursor: 0 },
-      update: {
+    const current = await getOrCreateRoutingPolicy(req.user!.id);
+    const policy = await prisma.uploadRoutingPolicy.update({
+      where: { id: current.id },
+      data: {
         mode: body.mode,
         priorityAccountIds,
         ...(body.mode !== 'round_robin' ? { roundRobinCursor: 0 } : {}),
@@ -121,7 +108,7 @@ storageRouter.patch('/routing-policy', async (req: AuthRequest, res, next) => {
   }
 });
 
-storageRouter.get('/breakdown', async (req: AuthRequest, res, next) => {
+storageRouter.get('/breakdown', async (_req: AuthRequest, res, next) => {
   try {
     const rows = await prisma.$queryRaw<BreakdownRow[]>`
       SELECT
@@ -132,7 +119,7 @@ storageRouter.get('/breakdown', async (req: AuthRequest, res, next) => {
         END AS kind,
         COALESCE(SUM(size_bytes), 0) AS bytes
       FROM files
-      WHERE user_id = ${req.user!.id} AND status = 'active'
+      WHERE status = 'active'
       GROUP BY kind
     `;
     const breakdown = { photo: '0', video: '0', document: '0' };

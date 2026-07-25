@@ -21,15 +21,15 @@ export function DummyModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-40 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <button
-        className="absolute inset-0 bg-slate-950/60"
+        className="absolute inset-0 bg-black/60"
         aria-label="Close modal"
         onClick={onClose}
       />
       <div
         className={cn(
-          'relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-t-sm border border-border bg-card dark:bg-slate-900 dark:border-slate-800 p-5 shadow-2xl shadow-slate-950/20 sm:max-w-md sm:rounded-sm',
+          'relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-t-sm border border-border bg-card p-5 shadow-2xl sm:max-w-md sm:rounded-sm',
           className,
         )}
       >

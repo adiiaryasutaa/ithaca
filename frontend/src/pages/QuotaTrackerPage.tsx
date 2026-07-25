@@ -3,7 +3,13 @@ import { CheckCircle, Cloud, Database, Filter, Gauge, Link2, RefreshCw } from 'l
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Combobox } from '@/components/ui/combobox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { apiFetch, formatBytes } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -245,9 +251,12 @@ export function QuotaTrackerPage() {
           </div>
           <label className="grid gap-2 text-sm font-semibold lg:w-64">
             Routing mode
-            <Combobox
-              className="h-11"
-              searchable={false}
+            <Select
+              items={{
+                most_available: 'Most available',
+                round_robin: 'Round robin',
+                priority: 'Priority order',
+              }}
               value={routingPolicy.mode}
               onValueChange={(mode) =>
                 saveRoutingPolicy({
@@ -259,12 +268,16 @@ export function QuotaTrackerPage() {
                   ),
                 )
               }
-              options={[
-                { value: 'most_available', label: 'Most available' },
-                { value: 'round_robin', label: 'Round robin' },
-                { value: 'priority', label: 'Priority order' },
-              ]}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="most_available">Most available</SelectItem>
+                <SelectItem value="round_robin">Round robin</SelectItem>
+                <SelectItem value="priority">Priority order</SelectItem>
+              </SelectContent>
+            </Select>
           </label>
         </div>
         <div className="mt-4 grid gap-3">

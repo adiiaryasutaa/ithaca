@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
+import { Input } from '@/components/ui/input';
 import { DummyModal } from '@/components/drive/DummyModal';
 import { PageHeader } from '@/components/drive/PageHeader';
 import { API_URL, apiFetch, formatDate } from '@/lib/api';
@@ -377,8 +378,7 @@ export function ApiManagementPage() {
         onClose={() => setCreateOpen(false)}
       >
         <form className="grid gap-4" onSubmit={createKey}>
-          <input
-            className="h-11 rounded-sm border border-border px-3 text-sm"
+          <Input
             placeholder="Key name"
             value={keyName}
             onChange={(event) => setKeyName(event.target.value)}
@@ -387,7 +387,7 @@ export function ApiManagementPage() {
           <label className="grid gap-2 text-sm font-semibold">
             Mode
             <Combobox
-              className="h-11"
+              className="h-7"
               searchable={false}
               value={mode}
               onValueChange={(value) => {
@@ -407,7 +407,7 @@ export function ApiManagementPage() {
             <label className="grid gap-2 text-sm font-semibold">
               Pinned Folder
               <Combobox
-                className="h-11"
+                className="h-7"
                 value={targetFolderId}
                 onValueChange={setTargetFolderId}
                 placeholder="No folder (unrestricted)"
@@ -422,7 +422,7 @@ export function ApiManagementPage() {
               <label className="grid gap-2 text-sm font-semibold">
                 Pin To
                 <Combobox
-                  className="h-11"
+                  className="h-7"
                   searchable={false}
                   value={targetKind}
                   onValueChange={(value) => {
@@ -441,7 +441,7 @@ export function ApiManagementPage() {
                 <label className="grid gap-2 text-sm font-semibold">
                   Folder
                   <Combobox
-                    className="h-11"
+                    className="h-7"
                     value={targetFolderId}
                     onValueChange={setTargetFolderId}
                     placeholder="Select a folder"
@@ -453,7 +453,7 @@ export function ApiManagementPage() {
                 <label className="grid gap-2 text-sm font-semibold">
                   File
                   <Combobox
-                    className="h-11"
+                    className="h-7"
                     value={targetFileId}
                     onValueChange={setTargetFileId}
                     placeholder="Select a file"

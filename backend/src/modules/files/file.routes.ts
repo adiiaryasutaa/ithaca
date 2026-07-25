@@ -54,6 +54,7 @@ fileRouter.get('/', async (req: AuthRequest, res, next) => {
     const query = z
       .object({
         folderId: z.string().optional(),
+        unfiled: z.enum(['1']).optional(),
         q: z.string().trim().max(255).optional(),
         kind: z.enum(['image', 'video', 'pdf', 'doc', 'archive']).optional(),
         accountId: z.string().optional(),
@@ -82,9 +83,8 @@ fileRouter.get('/', async (req: AuthRequest, res, next) => {
     };
 
     const where: any = {
-      userId: req.user!.id,
       status: 'active',
-      ...(query.folderId ? { folderId: query.folderId } : {}),
+      ...(query.folderId ? { folderId: query.folderId } : query.unfiled ? { folderId: null } : {}),
       ...(query.q ? { name: { contains: query.q } } : {}),
       ...(query.accountId ? { connectedAccountId: query.accountId } : {}),
       ...(query.kind ? { mimeType: { in: typeFilters[query.kind] || [] } } : {}),
@@ -131,10 +131,10 @@ fileRouter.patch('/batch', async (req: AuthRequest, res, next) => {
       .parse(req.body);
     if (body.folderId)
       await prisma.folder.findFirstOrThrow({
-        where: { id: body.folderId, userId: req.user!.id, deletedAt: null },
+        where: { id: body.folderId, deletedAt: null },
       });
     const result = await prisma.file.updateMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'active' },
+      where: { id: { in: body.fileIds }, status: 'active' },
       data: { folderId: body.folderId ?? null },
     });
     await createAuditLog(req.user!.id, 'MOVE_FILES', 'file', undefined, {
@@ -151,10 +151,10 @@ fileRouter.delete('/batch', async (req: AuthRequest, res, next) => {
   try {
     const body = batchFileSchema.parse(req.body);
     const files = await prisma.file.findMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'active' },
+      where: { id: { in: body.fileIds }, status: 'active' },
     });
     const result = await prisma.file.updateMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'active' },
+      where: { id: { in: body.fileIds }, status: 'active' },
       data: { status: 'deleted', deletedAt: new Date() },
     });
     for (const f of files) {
@@ -171,7 +171,6 @@ fileRouter.get('/trash', async (req: AuthRequest, res, next) => {
     const query = z.object({ q: z.string().trim().max(255).optional() }).parse(req.query);
     const files = await prisma.file.findMany({
       where: {
-        userId: req.user!.id,
         status: 'deleted',
         ...(query.q ? { name: { contains: query.q } } : {}),
       },
@@ -193,10 +192,10 @@ fileRouter.post('/batch/restore', async (req: AuthRequest, res, next) => {
   try {
     const body = batchFileSchema.parse(req.body);
     const files = await prisma.file.findMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'deleted' },
+      where: { id: { in: body.fileIds }, status: 'deleted' },
     });
     const result = await prisma.file.updateMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'deleted' },
+      where: { id: { in: body.fileIds }, status: 'deleted' },
       data: { status: 'active', deletedAt: null },
     });
     for (const f of files) {
@@ -212,7 +211,7 @@ fileRouter.delete('/batch/permanent', async (req: AuthRequest, res, next) => {
   try {
     const body = batchFileSchema.parse(req.body);
     const files = await prisma.file.findMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'deleted' },
+      where: { id: { in: body.fileIds }, status: 'deleted' },
       include: { connectedAccount: true },
     });
     const deletedIds: string[] = [];
@@ -243,7 +242,7 @@ fileRouter.delete('/batch/permanent', async (req: AuthRequest, res, next) => {
 
     if (deletedIds.length > 0) {
       await prisma.file.deleteMany({
-        where: { id: { in: deletedIds }, userId: req.user!.id },
+        where: { id: { in: deletedIds } },
       });
     }
 
@@ -274,7 +273,6 @@ fileRouter.get('/shared-links', async (req: AuthRequest, res, next) => {
   try {
     const shares = await prisma.fileShare.findMany({
       where: {
-        userId: req.user!.id,
         enabled: true,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
@@ -314,7 +312,6 @@ fileRouter.post('/sync-google', async (req: AuthRequest, res, next) => {
       .parse(req.body ?? {});
     const accounts = await prisma.connectedAccount.findMany({
       where: {
-        userId: req.user!.id,
         provider: 'google_drive',
         status: 'connected',
         ...(body.connectedAccountId ? { id: body.connectedAccountId } : {}),
@@ -339,7 +336,7 @@ fileRouter.get('/:id', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id },
+      where: { id: fileId },
       include: {
         connectedAccount: { select: { id: true, email: true, provider: true } },
         folder: { select: { id: true, name: true } },
@@ -361,7 +358,7 @@ fileRouter.patch('/:id', async (req: AuthRequest, res, next) => {
       .parse(req.body);
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id },
+      where: { id: fileId },
       include: { connectedAccount: true },
     });
     const drive =
@@ -370,7 +367,7 @@ fileRouter.patch('/:id', async (req: AuthRequest, res, next) => {
         : google.drive({ version: 'v3', auth: await getAuthedGoogleClient(file.connectedAccount) });
     if (body.folderId)
       await prisma.folder.findFirstOrThrow({
-        where: { id: body.folderId, userId: req.user!.id, deletedAt: null },
+        where: { id: body.folderId, deletedAt: null },
       });
     if (body.name && drive)
       await drive.files.update({ fileId: file.providerFileId, requestBody: { name: body.name } });
@@ -399,12 +396,11 @@ fileRouter.post('/:id/share', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id, status: 'active' },
+      where: { id: fileId, status: 'active' },
     });
     const existingShare = await prisma.fileShare.findFirst({
       where: {
         fileId: file.id,
-        userId: req.user!.id,
         enabled: true,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
@@ -433,7 +429,7 @@ fileRouter.post('/:id/public-permission', requireAuth, async (req: AuthRequest, 
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id },
+      where: { id: fileId },
       include: { connectedAccount: true },
     });
     if (file.provider !== 'google_drive') {
@@ -471,7 +467,7 @@ fileRouter.delete('/:id/share', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     await prisma.fileShare.updateMany({
-      where: { fileId, userId: req.user!.id, enabled: true },
+      where: { fileId, enabled: true },
       data: { enabled: false },
     });
     return res.json({ status: 'ok' });
@@ -484,7 +480,7 @@ fileRouter.post('/:id/preview-token', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id, status: 'active' },
+      where: { id: fileId, status: 'active' },
     });
     const token = randomToken(32);
     await prisma.filePreviewToken.create({
@@ -506,7 +502,7 @@ fileRouter.get('/:id/view-url', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id },
+      where: { id: fileId },
       include: { connectedAccount: true },
     });
     if (file.provider === 's3') return res.json({ url: null });
@@ -540,7 +536,7 @@ fileRouter.get('/:id/download', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id },
+      where: { id: fileId },
       include: { connectedAccount: true },
     });
     return streamProviderFile(file, req.headers.range, res, { disposition: 'attachment' });
@@ -553,7 +549,7 @@ fileRouter.delete('/:id', async (req: AuthRequest, res, next) => {
   try {
     const fileId = String(req.params.id);
     const file = await prisma.file.findFirstOrThrow({
-      where: { id: fileId, userId: req.user!.id, status: 'active' },
+      where: { id: fileId, status: 'active' },
     });
     await prisma.file.update({
       where: { id: file.id },
@@ -570,7 +566,7 @@ fileRouter.post('/batch-download', async (req: AuthRequest, res, next) => {
   try {
     const body = batchFileSchema.parse(req.body);
     const files = await prisma.file.findMany({
-      where: { id: { in: body.fileIds }, userId: req.user!.id, status: 'active' },
+      where: { id: { in: body.fileIds }, status: 'active' },
       include: { connectedAccount: true },
     });
     if (files.length === 0)

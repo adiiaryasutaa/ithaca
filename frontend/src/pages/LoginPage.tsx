@@ -73,7 +73,9 @@ export function LoginPage() {
               required
             />
           </label>
-          <Button disabled={loading}>{loading ? 'Logging in...' : 'Login'}</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </Button>
         </form>
         <div className="mt-4 grid gap-3">
           <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

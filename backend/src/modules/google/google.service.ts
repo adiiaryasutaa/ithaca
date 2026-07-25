@@ -122,22 +122,22 @@ type DriveFileMetadata = {
 
 export async function syncGoogleAppFolderFiles(
   accountId: string,
-  userId: string,
+  createdByUserId: string,
 ): Promise<GoogleAppFolderSyncResult> {
   const account = await prisma.connectedAccount.findFirstOrThrow({
-    where: { id: accountId, userId, provider: 'google_drive', status: 'connected' },
+    where: { id: accountId, provider: 'google_drive', status: 'connected' },
   });
   const auth = await getAuthedGoogleClient(account);
   const drive = google.drive({ version: 'v3', auth });
   const appFolderId = await ensureGoogleAppFolder(account);
 
-  const userFolders = await prisma.folder.findMany({
-    where: { userId, connectedAccountId: account.id, deletedAt: null },
+  const workspaceFolders = await prisma.folder.findMany({
+    where: { connectedAccountId: account.id, deletedAt: null },
     select: { id: true, providerFolderId: true },
   });
   const parentIds = [
     appFolderId,
-    ...userFolders.map((f) => f.providerFolderId).filter((id): id is string => !!id),
+    ...workspaceFolders.map((f) => f.providerFolderId).filter((id): id is string => !!id),
   ];
 
   const driveFiles: DriveFileMetadata[] = [];
@@ -169,7 +169,7 @@ export async function syncGoogleAppFolderFiles(
   } while (pageToken);
 
   const existingFiles = await prisma.file.findMany({
-    where: { userId, connectedAccountId: account.id, provider: 'google_drive' },
+    where: { connectedAccountId: account.id, provider: 'google_drive' },
   });
   const existingByProviderId = new Map(existingFiles.map((file) => [file.providerFileId, file]));
   const driveFileIds = new Set(driveFiles.map((file) => file.id));
@@ -177,7 +177,7 @@ export async function syncGoogleAppFolderFiles(
   let updated = 0;
   let deleted = 0;
 
-  const folderIdMap = new Map(userFolders.map((f) => [f.providerFolderId, f.id]));
+  const folderIdMap = new Map(workspaceFolders.map((f) => [f.providerFolderId, f.id]));
 
   for (const driveFile of driveFiles) {
     const dbFolderId =
@@ -186,7 +186,7 @@ export async function syncGoogleAppFolderFiles(
     if (!existing) {
       await prisma.file.create({
         data: {
-          userId,
+          userId: createdByUserId,
           connectedAccountId: account.id,
           provider: 'google_drive',
           providerFileId: driveFile.id,
@@ -229,7 +229,7 @@ export async function syncGoogleAppFolderFiles(
     .map((file) => file.id);
   if (missingActiveIds.length > 0) {
     const result = await prisma.file.updateMany({
-      where: { id: { in: missingActiveIds }, userId },
+      where: { id: { in: missingActiveIds } },
       data: { status: 'deleted', deletedAt: new Date() },
     });
     deleted = result.count;

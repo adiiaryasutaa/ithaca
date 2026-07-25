@@ -8,6 +8,12 @@ An `AGENTS.md` file also exists in the repo root with detailed conventions, envi
 
 Ithaca is a storage gateway: users connect multiple Google Drive accounts and/or S3-compatible buckets (MinIO, R2, Wasabi, B2, AWS S3) into one virtual dashboard. Uploads stream through the backend and are routed to whichever connected account has space; files are organized in app-level virtual folders backed by MySQL, not by the underlying provider's folder structure (except Google Drive, which mirrors folders as real Drive folders for the sync feature).
 
+**Single shared workspace — NOT multi-tenant.** Every authenticated user sees and controls the same connected accounts, quota, files, folders, routing policy, API keys, shares and activity log. The `userId` column on `File`/`Folder`/`ConnectedAccount`/etc. records *who created a row* and is never used to filter reads — new routes must not add `where: { userId: req.user!.id }`. Consequences to keep in mind:
+- Any login (and any API key, since `api-key.middleware.ts` makes a key act as its owner) can read, delete, and disconnect everything. Registration is disabled; accounts are admin-created, and that is the only access boundary. `requireAdmin` exists solely for `/users`.
+- `UploadRoutingPolicy` is a singleton row for the whole app — always go through `getOrCreateRoutingPolicy()` in `src/modules/storage/routing-policy.service.ts`, never `upsert({ where: { userId } })`.
+- `ConnectedAccount` is unique on `(provider, providerAccountId)`, so the same Drive/bucket cannot be connected twice by two users.
+- `userId` columns are NOT NULL with `onDelete: Cascade`, so hard-deleting a `User` row would destroy shared files. `DELETE /users/:id` only soft-disables (`status: 'disabled'`) — never delete user rows directly in SQL.
+
 ## Commands
 
 Backend (`cd backend`):
@@ -62,4 +68,5 @@ Vite + React 19 + React Router 7, Tailwind CSS 4. Route table lives in `frontend
 - New backend routes: `src/modules/<feature>/<feature>.routes.ts`, mounted in `app.ts`; validate bodies with Zod; convert `bigint` to string before JSON responses; pass unexpected errors to `next(error)`.
 - Keep uploaded-file bytes off local disk end-to-end (buffer-in-memory-then-forward is fine, writing to a temp file is not) — the one sanctioned exception is `system.routes.ts`'s SQLite backup/restore, which is disk I/O by necessity.
 - Don't change auth/token storage, Google OAuth scopes/redirect behavior, or upload-to-disk behavior without an explicit reason — these are called out as fragile in AGENTS.md.
+- Frontend: a button that submits a `<form>` MUST pass `type="submit"` explicitly — `Button` wraps `@base-ui/react/button`, which injects `type="button"` when the caller omits it, so a bare `<Button>` inside a form silently never submits (clicking does nothing; Enter still works via implicit submission).
 - Frontend: use `@/*` imports, the shadcn primitives in `frontend/src/components/ui/` (`Button`/`Card`/`Input`/`Dialog`/`Select`/`DropdownMenu`/`Tooltip`/`Label`/sonner), shadcn semantic-token utilities (never raw `slate`/`blue` classes), `cn()` from `frontend/src/lib/utils.ts`, and keep file/folder navigation state in query params (`folderId`, `q`).

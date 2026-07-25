@@ -54,13 +54,12 @@ async function ensureProviderFolderIds(
     parentId: string | null;
     providerFolderId: string | null;
   }>,
-  userId: string,
 ) {
   const foldersWithoutId = folders.filter((f) => !f.providerFolderId);
   if (foldersWithoutId.length === 0) return;
 
   const connectedAccount = await prisma.connectedAccount.findFirst({
-    where: { userId, provider: 'google_drive', status: 'connected' },
+    where: { provider: 'google_drive', status: 'connected' },
   });
   if (!connectedAccount) return;
 
@@ -74,7 +73,7 @@ async function ensureProviderFolderIds(
         let parentGoogleId = appFolderId;
         if (folder.parentId) {
           const parentFolder = await prisma.folder.findFirst({
-            where: { id: folder.parentId, userId },
+            where: { id: folder.parentId },
           });
           if (parentFolder?.providerFolderId) {
             parentGoogleId = parentFolder.providerFolderId;
@@ -114,7 +113,6 @@ folderRouter.get('/', async (req: AuthRequest, res, next) => {
       .parse(req.query);
     const folders = await prisma.folder.findMany({
       where: {
-        userId: req.user!.id,
         deletedAt: null,
         ...(query.all === '1' ? {} : { parentId: query.parentId ?? null }),
       },
@@ -130,7 +128,7 @@ folderRouter.get('/', async (req: AuthRequest, res, next) => {
       },
       orderBy: { updatedAt: 'desc' },
     });
-    await ensureProviderFolderIds(folders, req.user!.id);
+    await ensureProviderFolderIds(folders);
     return res.json({ folders: folders.map(serializeFolder) });
   } catch (error) {
     return next(error);
@@ -141,7 +139,7 @@ folderRouter.get('/recent', async (req: AuthRequest, res, next) => {
   try {
     const limit = Math.min(Number(req.query.limit ?? 4), 4);
     const folders = await prisma.folder.findMany({
-      where: { userId: req.user!.id, deletedAt: null },
+      where: { deletedAt: null },
       select: {
         id: true,
         name: true,
@@ -155,7 +153,7 @@ folderRouter.get('/recent', async (req: AuthRequest, res, next) => {
       orderBy: { updatedAt: 'desc' },
       take: limit,
     });
-    await ensureProviderFolderIds(folders, req.user!.id);
+    await ensureProviderFolderIds(folders);
     return res.json({ folders: folders.map(serializeFolder) });
   } catch (error) {
     return next(error);
@@ -168,12 +166,12 @@ folderRouter.post('/', async (req: AuthRequest, res, next) => {
     let parentFolder = null;
     if (body.parentId) {
       parentFolder = await prisma.folder.findFirstOrThrow({
-        where: { id: body.parentId, userId: req.user!.id, deletedAt: null },
+        where: { id: body.parentId, deletedAt: null },
       });
     }
 
     const connectedAccount = await prisma.connectedAccount.findFirst({
-      where: { userId: req.user!.id, provider: 'google_drive', status: 'connected' },
+      where: { provider: 'google_drive', status: 'connected' },
     });
 
     let providerFolderId: string | null = null;
@@ -239,16 +237,16 @@ folderRouter.patch('/:id', async (req: AuthRequest, res, next) => {
         .json({ code: 'FOLDER_INVALID_PARENT', message: 'Folder cannot be moved into itself.' });
 
     const folderRecord = await prisma.folder.findFirstOrThrow({
-      where: { id: folderId, userId: req.user!.id, deletedAt: null },
+      where: { id: folderId, deletedAt: null },
       include: { connectedAccount: true },
     });
 
     if (body.parentId) {
       await prisma.folder.findFirstOrThrow({
-        where: { id: body.parentId, userId: req.user!.id, deletedAt: null },
+        where: { id: body.parentId, deletedAt: null },
       });
       const folders = await prisma.folder.findMany({
-        where: { userId: req.user!.id, deletedAt: null },
+        where: { deletedAt: null },
         select: { id: true, parentId: true },
       });
       const descendantIds = new Set<string>([folderId]);
@@ -300,7 +298,7 @@ folderRouter.patch('/:id', async (req: AuthRequest, res, next) => {
         let newGoogleParentId = await ensureGoogleAppFolder(folderRecord.connectedAccount);
         if (body.parentId) {
           const newParent = await prisma.folder.findFirst({
-            where: { id: body.parentId, userId: req.user!.id },
+            where: { id: body.parentId },
           });
           if (newParent?.providerFolderId) {
             newGoogleParentId = newParent.providerFolderId;
@@ -325,7 +323,7 @@ folderRouter.patch('/:id', async (req: AuthRequest, res, next) => {
     }
 
     const folder = await prisma.folder.updateMany({
-      where: { id: folderId, userId: req.user!.id, deletedAt: null },
+      where: { id: folderId, deletedAt: null },
       data: {
         ...(body.name ? { name: body.name } : {}),
         ...(body.color ? { color: body.color } : {}),
@@ -336,7 +334,7 @@ folderRouter.patch('/:id', async (req: AuthRequest, res, next) => {
     if (folder.count === 0)
       return res.status(404).json({ code: 'FOLDER_NOT_FOUND', message: 'Folder not found.' });
     const updated = await prisma.folder.findFirstOrThrow({
-      where: { id: folderId, userId: req.user!.id },
+      where: { id: folderId },
       select: {
         id: true,
         name: true,
@@ -362,10 +360,10 @@ folderRouter.delete('/:id', async (req: AuthRequest, res, next) => {
   try {
     const rootId = String(req.params.id);
     const root = await prisma.folder.findFirstOrThrow({
-      where: { id: rootId, userId: req.user!.id, deletedAt: null },
+      where: { id: rootId, deletedAt: null },
     });
     const folders = await prisma.folder.findMany({
-      where: { userId: req.user!.id, deletedAt: null },
+      where: { deletedAt: null },
       select: { id: true, parentId: true },
     });
     const folderIds = new Set<string>([root.id]);
@@ -381,7 +379,7 @@ folderRouter.delete('/:id', async (req: AuthRequest, res, next) => {
     }
 
     const files = await prisma.file.findMany({
-      where: { userId: req.user!.id, status: 'active', folderId: { in: [...folderIds] } },
+      where: { status: 'active', folderId: { in: [...folderIds] } },
       include: { connectedAccount: true },
     });
     const syncedAccountIds = new Set<string>();
@@ -398,7 +396,7 @@ folderRouter.delete('/:id', async (req: AuthRequest, res, next) => {
 
     // Delete folders on Google Drive
     const foldersToDelete = await prisma.folder.findMany({
-      where: { id: { in: [...folderIds] }, userId: req.user!.id },
+      where: { id: { in: [...folderIds] } },
       include: { connectedAccount: true },
     });
     for (const f of foldersToDelete) {
@@ -419,7 +417,7 @@ folderRouter.delete('/:id', async (req: AuthRequest, res, next) => {
       data: { status: 'deleted', deletedAt: new Date() },
     });
     await prisma.folder.updateMany({
-      where: { id: { in: [...folderIds] }, userId: req.user!.id },
+      where: { id: { in: [...folderIds] } },
       data: { deletedAt: new Date() },
     });
     for (const accountId of syncedAccountIds)

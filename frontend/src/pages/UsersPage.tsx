@@ -196,7 +196,7 @@ export function UsersPage() {
                         'rounded-full px-2 py-0.5 text-xs font-bold',
                         user.role === 'admin'
                           ? 'bg-primary/10 text-primary'
-                          : 'bg-accent text-muted-foreground',
+                          : 'bg-accent text-accent-foreground',
                       )}
                     >
                       {user.role}
@@ -208,7 +208,7 @@ export function UsersPage() {
                         'rounded-full px-2 py-0.5 text-xs font-bold',
                         user.status === 'active'
                           ? 'bg-emerald-100 text-emerald-600'
-                          : 'bg-accent text-muted-foreground',
+                          : 'bg-accent text-accent-foreground',
                       )}
                     >
                       {user.status}

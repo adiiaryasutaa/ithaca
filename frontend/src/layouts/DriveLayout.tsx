@@ -512,7 +512,7 @@ export function DriveLayout() {
         </div>
 
         {uploadProgress.open ? (
-          <div className="fixed inset-x-3 bottom-3 z-[70] max-h-[70dvh] overflow-hidden rounded-sm border border-border bg-card shadow-2xl shadow-slate-900/20 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[min(420px,calc(100vw-2.5rem))]">
+          <div className="fixed inset-x-3 bottom-3 z-30 max-h-[70dvh] overflow-hidden rounded-sm border border-border bg-card shadow-2xl shadow-slate-900/20 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[min(420px,calc(100vw-2.5rem))]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2 font-extrabold text-sm text-foreground">
                 {uploadProgress.status === 'done' ? (

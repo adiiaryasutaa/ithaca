@@ -60,10 +60,9 @@ function serializeApiKey(apiKey: {
   };
 }
 
-apiKeyRouter.get('/', async (req: AuthRequest, res, next) => {
+apiKeyRouter.get('/', async (_req: AuthRequest, res, next) => {
   try {
     const apiKeys = await prisma.apiKey.findMany({
-      where: { userId: req.user!.id },
       orderBy: { createdAt: 'desc' },
       include: { targetFolder: targetSelect, targetFile: targetSelect },
     });
@@ -81,12 +80,12 @@ apiKeyRouter.post('/', async (req: AuthRequest, res, next) => {
 
     if (targetFolderId) {
       await prisma.folder.findFirstOrThrow({
-        where: { id: targetFolderId, userId: req.user!.id, deletedAt: null },
+        where: { id: targetFolderId, deletedAt: null },
       });
     }
     if (targetFileId) {
       await prisma.file.findFirstOrThrow({
-        where: { id: targetFileId, userId: req.user!.id, status: 'active' },
+        where: { id: targetFileId, status: 'active' },
       });
     }
 
@@ -114,7 +113,7 @@ apiKeyRouter.post('/', async (req: AuthRequest, res, next) => {
 apiKeyRouter.delete('/:id', async (req: AuthRequest, res, next) => {
   try {
     await prisma.apiKey.updateMany({
-      where: { id: String(req.params.id), userId: req.user!.id, revokedAt: null },
+      where: { id: String(req.params.id), revokedAt: null },
       data: { status: 'revoked', revokedAt: new Date() },
     });
     return res.json({ status: 'ok' });

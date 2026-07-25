@@ -39,10 +39,9 @@ providerConfigRouter.post('/google', async (req: AuthRequest, res, next) => {
   }
 });
 
-providerConfigRouter.get('/', async (req: AuthRequest, res, next) => {
+providerConfigRouter.get('/', async (_req: AuthRequest, res, next) => {
   try {
     const configs = await prisma.providerConfig.findMany({
-      where: { userId: req.user!.id },
       select: {
         id: true,
         provider: true,
@@ -61,7 +60,7 @@ providerConfigRouter.get('/', async (req: AuthRequest, res, next) => {
 providerConfigRouter.delete('/:id', async (req: AuthRequest, res, next) => {
   try {
     await prisma.providerConfig.deleteMany({
-      where: { id: String(req.params.id), userId: req.user!.id },
+      where: { id: String(req.params.id) },
     });
     return res.json({ status: 'ok' });
   } catch (error) {

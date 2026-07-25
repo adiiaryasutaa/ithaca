@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import {
   Archive,
   CheckCircle,
+  CheckSquare,
   ClipboardPaste,
   Download,
   FolderInput,
@@ -29,7 +30,6 @@ import { FileContextMenu } from '@/components/drive/FileContextMenu';
 import { FileDetailsDrawer } from '@/components/drive/FileDetailsDrawer';
 import { FileTable } from '@/components/drive/FileTable';
 import { FolderContextMenu } from '@/components/drive/FolderContextMenu';
-import { FolderGrid, type FolderSizeScale } from '@/components/drive/FolderGrid';
 import {
   defaultFolderColor,
   defaultFolderIconUrl,
@@ -46,7 +46,6 @@ import { createPlyr, ensurePlyr } from '@/lib/plyr';
 import { getPreviewKind, officeViewerUrl } from '@/lib/preview';
 import type { FileItem, FolderItem } from '@/data/drive-data';
 import { useUpload } from '@/context/UploadContext';
-import { useDriveLayoutActions } from '@/layouts/DriveLayout';
 
 type BackendFile = {
   id: string;
@@ -221,6 +220,7 @@ export function AllFilesPage() {
   const [activeFile, setActiveFile] = useState<FileItem | null>(null);
   const [activeFolderForMenu, setActiveFolderForMenu] = useState<FolderItem | null>(null);
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [cutFolder, setCutFolder] = useState<FolderItem | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: FileItem | null }>({
     x: 0,
@@ -248,17 +248,13 @@ export function AllFilesPage() {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviting, setInviting] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
-  const folderSizeScale: FolderSizeScale = (() => {
-    const v = localStorage.getItem('ithaca:folder-size');
-    return v === 'xs' || v === 'sm' || v === 'md' || v === 'lg' ? v : 'md';
-  })();
-  const { setHeaderActions } = useDriveLayoutActions();
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [selectedTargetAccountId, setSelectedTargetAccountId] = useState('');
 
   async function loadFiles() {
     const params = new URLSearchParams();
     if (activeFolderId) params.set('folderId', activeFolderId);
+    else params.set('unfiled', '1');
     if (searchQuery) params.set('q', searchQuery);
 
     // Add advanced search filters
@@ -387,20 +383,25 @@ export function AllFilesPage() {
 
   async function createFolder(event: FormEvent) {
     event.preventDefault();
-    await apiFetch('/folders', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: folderName,
-        color: folderColor,
-        iconUrl: folderIconUrl,
-        parentId: activeFolderId ?? null,
-      }),
-    });
-    setFolderName('');
-    setFolderColor(defaultFolderColor);
-    setFolderIconUrl(defaultFolderIconUrl);
-    setFolderOpen(false);
-    await loadFolders();
+    try {
+      await apiFetch('/folders', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: folderName,
+          color: folderColor,
+          iconUrl: folderIconUrl,
+          parentId: activeFolderId ?? null,
+        }),
+      });
+      setFolderName('');
+      setFolderColor(defaultFolderColor);
+      setFolderIconUrl(defaultFolderIconUrl);
+      setFolderOpen(false);
+      await loadFolders();
+      toast.success('Folder created.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create folder');
+    }
   }
 
   async function uploadFile(event: FormEvent) {
@@ -497,6 +498,12 @@ export function AllFilesPage() {
   }
 
   function clearSelection() {
+    setSelectedFileIds(new Set());
+    setSelectMode(false);
+  }
+
+  function toggleSelectMode() {
+    setSelectMode((current) => !current);
     setSelectedFileIds(new Set());
   }
 
@@ -788,27 +795,6 @@ export function AllFilesPage() {
     return () => window.removeEventListener('ithaca:upload-completed', handleUploadCompleted);
   }, [activeFolderId]);
 
-  useEffect(() => {
-    setHeaderActions(
-      <div className="flex items-center gap-2">
-        <Button size="sm" onClick={() => setUploadOpen(true)}>
-          <Upload className="h-3.5 w-3.5" />
-          Upload
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setFolderOpen(true)}>
-          <FolderPlus className="h-3.5 w-3.5" />
-          New Folder
-        </Button>
-        <Button size="sm" variant="outline" disabled={syncingDrive} onClick={syncGoogleDrive}>
-          <RefreshCw className={syncingDrive ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
-          {syncingDrive ? 'Syncing...' : 'Sync'}
-        </Button>
-      </div>,
-    );
-  }, [syncingDrive]);
-
-  const recentFolders = folders.slice(0, 4);
-  const moreFolders = folders.slice(4);
   const activeFolder = allFolders.find((folder) => folder.id === activeFolderId);
   const folderBreadcrumbs = (() => {
     if (!activeFolder) return [];
@@ -858,107 +844,75 @@ export function AllFilesPage() {
             )
           }
         />
-        {/* Action buttons row — visible on mobile/tablet, hidden on desktop (desktop uses header slot) */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 lg:hidden">
-          <Button size="sm" onClick={() => setUploadOpen(true)}>
-            <Upload className="h-3.5 w-3.5" />
-            Upload
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setFolderOpen(true)}>
-            <FolderPlus className="h-3.5 w-3.5" />
-            New Folder
-          </Button>
-          <Button size="sm" variant="outline" disabled={syncingDrive} onClick={syncGoogleDrive}>
-            <RefreshCw className={syncingDrive ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
-            {syncingDrive ? 'Syncing...' : 'Sync'}
-          </Button>
-        </div>
-        {!activeFolder &&
-          (recentFolders.length > 0 ? (
-            <FolderGrid
-              items={recentFolders}
-              mobileTwoColumns
-              sizeScale={folderSizeScale}
-              onFolderMenu={openFolderMenu}
-              onFolderOpen={openFolder}
-              onDropItem={handleDropItem}
-            />
-          ) : (
-            <p className="mt-4 rounded-sm bg-muted p-5 text-sm text-muted-foreground">
-              No folders yet. Click New Folder to organize uploads.
-            </p>
-          ))}
-        {!activeFolder && moreFolders.length > 0 ? (
-          <>
-            <h2 className="mt-4 font-extrabold text-foreground">More Folders</h2>
-            <FolderGrid
-              items={moreFolders}
-              sizeScale={folderSizeScale}
-              onFolderMenu={openFolderMenu}
-              onFolderOpen={openFolder}
-              onDropItem={handleDropItem}
-            />
-          </>
-        ) : null}
-        {activeFolder && folders.length > 0 ? (
-          <>
-            <h2 className="mt-4 font-extrabold text-foreground">Folders</h2>
-            <FolderGrid
-              items={folders}
-              sizeScale={folderSizeScale}
-              onFolderMenu={openFolderMenu}
-              onFolderOpen={openFolder}
-              onDropItem={handleDropItem}
-            />
-          </>
-        ) : null}
         <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="secondary" className="hidden sm:inline-flex">
+            <Button size="sm" variant="outline" className="hidden sm:inline-flex">
               <Archive className="h-4 w-4" />
               Recents
             </Button>
-            <Button variant="secondary" className="hidden sm:inline-flex">
+            <Button size="sm" variant="outline" className="hidden sm:inline-flex">
               <Star className="h-4 w-4" />
               Starred
             </Button>
-            {selectedFileIds.size > 0 ? (
-              <div className="flex w-full flex-col gap-3 rounded-sm border border-orange-500/20 bg-orange-500/10 p-3 sm:w-auto sm:flex-row sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
-                <span className="text-sm font-extrabold text-foreground">
-                  {selectedFileIds.size} selected
-                </span>
-                <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-3">
-                  <Button
-                    className="w-full sm:w-auto"
-                    variant="outline"
-                    onClick={downloadBatchAsZip}
-                  >
-                    <Download className="h-4 w-4" />
-                    ZIP
-                  </Button>
-                  <Button
-                    className="w-full sm:w-auto"
-                    variant="outline"
-                    onClick={() => setMoveOpen(true)}
-                  >
-                    <FolderInput className="h-4 w-4" />
-                    Move
-                  </Button>
-                  <Button
-                    className="w-full sm:w-auto"
-                    variant="destructive"
-                    onClick={() => setDeleteOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </Button>
-                  <Button className="w-full sm:w-auto" variant="ghost" onClick={clearSelection}>
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            ) : null}
           </div>
+          {selectedFileIds.size > 0 ? (
+            <div className="flex w-full flex-col gap-3 rounded-sm border border-orange-500/20 bg-orange-500/10 p-3 sm:w-auto sm:flex-row sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
+              <span className="text-sm font-extrabold text-foreground">
+                {selectedFileIds.size} selected
+              </span>
+              <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-3">
+                <Button className="w-full sm:w-auto" variant="outline" onClick={downloadBatchAsZip}>
+                  <Download className="h-4 w-4" />
+                  ZIP
+                </Button>
+                <Button
+                  className="w-full sm:w-auto"
+                  variant="outline"
+                  onClick={() => setMoveOpen(true)}
+                >
+                  <FolderInput className="h-4 w-4" />
+                  Move
+                </Button>
+                <Button
+                  className="w-full sm:w-auto"
+                  variant="destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+                <Button className="w-full sm:w-auto" variant="outline" onClick={clearSelection}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+          ) : selectMode ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Select files to continue</span>
+              <Button size="sm" variant="outline" onClick={toggleSelectMode}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={toggleSelectMode}>
+                <CheckSquare className="h-3.5 w-3.5" />
+                Select
+              </Button>
+              <Button size="sm" onClick={() => setUploadOpen(true)}>
+                <Upload className="h-3.5 w-3.5" />
+                Upload
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setFolderOpen(true)}>
+                <FolderPlus className="h-3.5 w-3.5" />
+                New Folder
+              </Button>
+              <Button size="sm" variant="outline" disabled={syncingDrive} onClick={syncGoogleDrive}>
+                <RefreshCw className={syncingDrive ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
+                {syncingDrive ? 'Syncing...' : 'Sync'}
+              </Button>
+            </div>
+          )}
         </div>
         {cutFolder ? (
           <p className="mt-3 rounded-sm bg-amber-50 p-3 text-sm font-semibold text-amber-700">
@@ -966,13 +920,13 @@ export function AllFilesPage() {
             Cut folder: {cutFolder.name}. Press Ctrl+V or right-click empty area to paste here.
           </p>
         ) : null}
-        {files.length === 0 ? (
+        {files.length === 0 && folders.length === 0 ? (
           <Card className="mt-3 p-5 bg-card border border-border dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
             <p className="text-sm text-muted-foreground">
               {searchQuery
                 ? `No files found for "${searchQuery}".`
                 : activeFolder
-                  ? 'No files in this folder yet.'
+                  ? 'No files or folders in this folder yet.'
                   : 'No uploaded files yet. Connect Google Drive in Settings, then upload a file.'}
             </p>
           </Card>
@@ -980,11 +934,16 @@ export function AllFilesPage() {
           <Card className="mt-3 min-w-0 overflow-x-auto p-0 bg-card dark:bg-transparent dark:shadow-none">
             <FileTable
               files={files}
+              folders={folders}
+              selectable={selectMode}
               selectedFileIds={selectedFileIds}
               allSelected={allVisibleSelected}
               onToggleFile={toggleFileSelection}
               onToggleAll={toggleAllVisibleFiles}
               onFileContextMenu={openContext}
+              onFolderOpen={openFolder}
+              onFolderMenu={openFolderMenu}
+              onDropOnFolder={handleDropItem}
             />
           </Card>
         )}
@@ -1102,7 +1061,7 @@ export function AllFilesPage() {
           <label className="grid gap-2 text-sm font-semibold">
             Target Storage Account
             <Combobox
-              className="h-11"
+              className="h-7"
               value={selectedTargetAccountId}
               onValueChange={(id) => setSelectedTargetAccountId(id)}
               options={[
@@ -1122,7 +1081,7 @@ export function AllFilesPage() {
             <label className="grid gap-2 text-sm font-semibold">
               Virtual Folder
               <Combobox
-                className="h-11"
+                className="h-7"
                 value={selectedFolderId}
                 onValueChange={(id) => setSelectedFolderId(id)}
                 options={[
@@ -1167,7 +1126,7 @@ export function AllFilesPage() {
             <Button type="button" variant="outline" onClick={() => setUploadOpen(false)}>
               Cancel
             </Button>
-            <Button disabled={loading || selectedFiles.length === 0}>
+            <Button type="submit" disabled={loading || selectedFiles.length === 0}>
               {loading
                 ? 'Uploading...'
                 : `Upload${selectedFiles.length > 1 ? ` ${selectedFiles.length} files` : ''}`}
@@ -1201,7 +1160,7 @@ export function AllFilesPage() {
             <Button type="button" variant="outline" onClick={() => setFolderOpen(false)}>
               Cancel
             </Button>
-            <Button>Create Folder</Button>
+            <Button type="submit">Create Folder</Button>
           </div>
         </form>
       </DummyModal>
@@ -1221,7 +1180,7 @@ export function AllFilesPage() {
             <Button type="button" variant="outline" onClick={() => setRenameOpen(false)}>
               Cancel
             </Button>
-            <Button>Rename</Button>
+            <Button type="submit">Rename</Button>
           </div>
         </form>
       </DummyModal>
@@ -1235,7 +1194,7 @@ export function AllFilesPage() {
       >
         <form onSubmit={moveFile} className="grid gap-4">
           <Combobox
-            className="h-11"
+            className="h-7"
             value={selectedFolderId}
             onValueChange={(id) => setSelectedFolderId(id)}
             options={[
@@ -1247,7 +1206,7 @@ export function AllFilesPage() {
             <Button type="button" variant="outline" onClick={() => setMoveOpen(false)}>
               Cancel
             </Button>
-            <Button>Move</Button>
+            <Button type="submit">Move</Button>
           </div>
         </form>
       </DummyModal>
@@ -1362,7 +1321,7 @@ export function AllFilesPage() {
             <Button type="button" variant="outline" onClick={() => setFolderRenameOpen(false)}>
               Cancel
             </Button>
-            <Button>Rename</Button>
+            <Button type="submit">Rename</Button>
           </div>
         </form>
       </DummyModal>
@@ -1401,7 +1360,7 @@ export function AllFilesPage() {
           <label className="grid gap-2 text-sm font-semibold">
             Role
             <Combobox
-              className="h-11"
+              className="h-7"
               searchable={false}
               value={inviteRole}
               onValueChange={(role) => setInviteRole(role)}
@@ -1420,7 +1379,9 @@ export function AllFilesPage() {
             <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
               Cancel
             </Button>
-            <Button disabled={inviting}>{inviting ? 'Sending...' : 'Send Invite'}</Button>
+            <Button type="submit" disabled={inviting}>
+              {inviting ? 'Sending...' : 'Send Invite'}
+            </Button>
           </div>
         </form>
       </DummyModal>
