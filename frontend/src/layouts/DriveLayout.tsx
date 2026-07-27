@@ -8,7 +8,6 @@ import {
 } from 'react-router-dom';
 import {
   Bell,
-  Menu,
   Moon,
   Search,
   SlidersHorizontal,
@@ -29,7 +28,8 @@ import {
   type StorageSummary,
 } from '@/components/drive/AppSidebar';
 import { BrandLogo } from '@/components/drive/BrandLogo';
-import { SidebarProvider } from '@/components/drive/sidebar-context';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { getStoredSidebarCollapsed, setStoredSidebarCollapsed } from '@/lib/sidebar-storage';
 import { Input } from '@/components/ui/input';
 import { apiFetch, formatBytes } from '@/lib/api';
 import { useUpload } from '@/context/UploadContext';
@@ -127,7 +127,6 @@ export function DriveLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(searchParams.get('q') ?? '');
   const [user, setUser] = useState<AuthUser | null>(getStoredUser());
   const [storage, setStorage] = useState<StorageSummary | null>(null);
@@ -145,6 +144,7 @@ export function DriveLayout() {
     if (saved === 'light' || saved === 'dark') return saved;
     return 'dark';
   });
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => !getStoredSidebarCollapsed());
 
   // Advanced search states
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
@@ -279,56 +279,21 @@ export function DriveLayout() {
   }, []);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      open={sidebarExpanded}
+      onOpenChange={(open) => {
+        setSidebarExpanded(open);
+        setStoredSidebarCollapsed(!open);
+      }}
+    >
       <main className="min-h-screen w-full overflow-x-hidden bg-background">
         <div className="flex min-h-screen w-full flex-col bg-background lg:h-screen lg:overflow-hidden lg:flex-row">
-          <div className="hidden lg:block lg:h-screen lg:shrink-0">
-            <AppSidebar user={user} storage={storage} breakdown={breakdown} onLogout={logout} />
-          </div>
-          <div
-            className={cn(
-              'fixed inset-0 z-40 bg-slate-950/40 transition-opacity lg:hidden',
-              sidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
-            )}
-            onClick={() => setSidebarOpen(false)}
-          />
-          <div
-            className={cn(
-              'fixed inset-y-0 left-0 z-50 transform bg-card shadow-2xl transition-transform duration-300 ease-out lg:hidden',
-              sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-            )}
-          >
-            <div className="absolute right-4 top-4 z-10">
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Close sidebar"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <AppSidebar
-              forceExpanded
-              user={user}
-              storage={storage}
-              breakdown={breakdown}
-              onLogout={logout}
-              onNavigate={() => setSidebarOpen(false)}
-            />
-          </div>
+          <AppSidebar user={user} storage={storage} breakdown={breakdown} onLogout={logout} />
           <section className="min-w-0 flex-1 p-4 sm:p-6 lg:h-screen lg:overflow-y-auto lg:p-8">
             <header className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center justify-between gap-3 lg:hidden">
                 <div className="flex min-w-0 items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Open sidebar"
-                    onClick={() => setSidebarOpen(true)}
-                  >
-                    <Menu className="h-5 w-5" />
-                  </Button>
+                  <SidebarTrigger variant="outline" size="icon" aria-label="Open sidebar" />
                   <div className="flex min-w-0 items-center gap-2">
                     <BrandLogo className="h-9 w-9 shrink-0" />
                     <span className="truncate text-xl font-extrabold tracking-tight">Ithaca</span>
