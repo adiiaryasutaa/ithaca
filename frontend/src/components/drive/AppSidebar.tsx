@@ -190,72 +190,76 @@ export function AppSidebar({
         ) : null}
       </nav>
 
-      <Card
-        size="sm"
-        className={cn('mt-auto text-[13px] !overflow-visible', collapsed && 'px-2 py-3')}
-      >
-        <div
-          ref={menuRef}
-          className={cn(
-            'relative flex items-center gap-2.5',
-            collapsed ? 'flex-col' : 'px-(--card-spacing)',
-          )}
-        >
-          {!profileImageUrl || avatarError ? (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm border border-blue-400/20">
-              {(user?.name ?? user?.email ?? 'U').trim().charAt(0).toUpperCase()}
-            </div>
-          ) : (
-            <img
-              src={profileImageUrl}
-              alt="User avatar"
-              className="h-8 w-8 rounded-full border border-border object-cover"
-              onError={() => setAvatarError(true)}
-            />
-          )}
-          {!collapsed ? (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-bold text-foreground leading-none">
-                {user?.name ?? 'User'}
-              </p>
-              <p className="truncate text-xs text-muted-foreground mt-1">
-                {user?.email ?? 'Loading...'}
-              </p>
-            </div>
-          ) : null}
-          <button
-            type="button"
-            aria-label="Profile menu"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-            className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+      {(() => {
+        const profile = (
+          <div
+            ref={menuRef}
+            className={cn(
+              'relative flex items-center gap-2.5',
+              collapsed ? 'flex-col' : 'px-(--card-spacing)',
+            )}
           >
-            <MoreVertical className="h-4 w-4" />
-          </button>
-          {menuOpen ? (
-            <div
-              className={cn(
-                'absolute z-50 w-44 overflow-hidden rounded-sm border border-border bg-card shadow-xl shadow-slate-950/10',
-                collapsed ? 'left-full bottom-0 ml-2' : 'right-0 bottom-full mb-1',
-              )}
+            {!profileImageUrl || avatarError ? (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm border border-blue-400/20">
+                {(user?.name ?? user?.email ?? 'U').trim().charAt(0).toUpperCase()}
+              </div>
+            ) : (
+              <img
+                src={profileImageUrl}
+                alt="User avatar"
+                className="h-8 w-8 rounded-full border border-border object-cover"
+                onError={() => setAvatarError(true)}
+              />
+            )}
+            {!collapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-bold text-foreground leading-none">
+                  {user?.name ?? 'User'}
+                </p>
+                <p className="truncate text-xs text-muted-foreground mt-1">
+                  {user?.email ?? 'Loading...'}
+                </p>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              aria-label="Profile menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+              className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
             >
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onLogout();
-                }}
-                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] font-bold text-destructive transition-colors"
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            {menuOpen ? (
+              <div
+                className={cn(
+                  'absolute z-50 w-44 overflow-hidden rounded-sm border border-border bg-card shadow-xl shadow-slate-950/10',
+                  collapsed ? 'left-full bottom-0 ml-2' : 'right-0 bottom-full mb-1',
+                )}
               >
-                <LogOut className="h-4 w-4" />
-                Log Out
-              </button>
-            </div>
-          ) : null}
-        </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onLogout();
+                  }}
+                  className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] font-bold text-destructive transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log Out
+                </button>
+              </div>
+            ) : null}
+          </div>
+        );
 
-        {!collapsed ? (
-          <>
+        if (collapsed) {
+          return <div className="mt-auto pb-1">{profile}</div>;
+        }
+
+        return (
+          <Card size="sm" className="mt-auto text-[13px] !overflow-visible">
+            {profile}
             <div className="border-t border-border" />
             <div className="px-(--card-spacing)">
               <div className="mb-3 space-y-1.5">
@@ -283,9 +287,9 @@ export function AppSidebar({
                 />
               </div>
             </div>
-          </>
-        ) : null}
-      </Card>
+          </Card>
+        );
+      })()}
     </aside>
   );
 }
