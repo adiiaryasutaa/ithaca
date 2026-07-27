@@ -2,7 +2,7 @@
 
 # Ithaca
 
-Ithaca is a storage gateway web app for connecting multiple Google Drive accounts into one virtual storage dashboard. Users can register with email/password or Google, automatically connect their first Google Drive account during Google sign-in, track quota, upload files into a dedicated `Ithaca` Drive folder, organize files with virtual folders, preview files, sync MySQL from Google Drive, and let the backend route uploads to the Drive account with enough free space.
+Ithaca is a storage gateway web app for connecting multiple Google Drive accounts into one virtual storage dashboard. Users can register with email/password or Google, automatically connect their first Google Drive account during Google sign-in, track quota, upload files into a dedicated `Ithaca` Drive folder, organize files with virtual folders, preview files, sync file records from Google Drive, and let the backend route uploads to the Drive account with enough free space.
 
 ## Features
 
@@ -17,7 +17,7 @@ Ithaca is a storage gateway web app for connecting multiple Google Drive account
 - Email/password auth plus Google sign-in/register with automatic first Drive connection.
 - Multi-account storage quota summary.
 - Quota tracker page.
-- Manual sync from the Google Drive `Ithaca` folder back into MySQL.
+- Manual sync from the Google Drive `Ithaca` folder back into the database.
 - Virtual folders.
 - File preview, download, rename, move, and delete actions.
 - In-app API documentation with cURL and JavaScript upload examples.
@@ -26,7 +26,7 @@ Ithaca is a storage gateway web app for connecting multiple Google Drive account
 - Global Google OAuth config stored encrypted in DB (can be set via seed command or directly in Settings UI).
 - Automated system updates via `update.sh` directly from the Settings UI (PM2 setup).
 - Optional reCAPTCHA on email/password registration.
-- MySQL database with Prisma migrations.
+- PostgreSQL database with Prisma migrations (Neon-compatible).
 - Express + TypeScript backend.
 - React + Vite frontend.
 
@@ -53,55 +53,22 @@ frontend/  Vite React app
 
 - Node.js 20+
 - npm
-- MySQL running locally
+- PostgreSQL running locally, or a free [Neon](https://neon.com) project
 - Google Cloud project
 - Google OAuth Client ID and Client Secret
 
-Default database used by this project:
+Default database used by this project (matches `docker-compose.yml` / `backend/.env.example`):
 
 ```txt
 host: localhost
-port: 3306
+port: 5432
 database: ithaca
-user: root
-password: empty
+user: postgres
+password: root
 ```
 
-## 1. Quick Setup & Installation (Recommended)
+## 1. Install Dependencies
 
-The easiest way to set up and run the project is using the automated setup script. It automatically generates all environment files with secure keys, installs dependencies, handles Prisma migrations, and configures either **SQLite** (zero installation/config) or **MySQL**.
-
-### Windows (PowerShell)
-Make sure to open PowerShell and navigate to the project directory first. For example, if you cloned the project to `E:\AUTO KLIK\Ithaca`:
-
-```powershell
-# 1. Switch to the drive where the project is located (if necessary)
-E:
-
-# 2. Navigate to the project folder
-cd "E:\AUTO KLIK\Ithaca"
-
-# 3. Run the automated setup script
-powershell -ExecutionPolicy Bypass -File .\setup.ps1
-```
-
-
-1. **Database**: Choose **SQLite (Option 1)** for zero-configuration, or **MySQL (Option 2)**.
-2. **Google Credentials**: Enter Client ID/Secret or skip (press Enter) to set up later.
-
-Once setup is complete, run the entire application (both frontend and backend) in one command:
-
-```bash
-npm run dev
-```
-
----
-
-## 2. Manual Installation (Alternative)
-
-If you prefer to configure the project manually:
-
-### 2.1 Install Dependencies
 Install backend dependencies:
 
 ```bash
@@ -116,23 +83,25 @@ cd ../frontend
 npm install
 ```
 
-### 2.2 Create Database (For MySQL)
-Create a database:
+## 2. Create Database
+
+Local Postgres:
 ```sql
 CREATE DATABASE ithaca;
 ```
-If using MySQL CLI:
+If using `psql` CLI:
 ```bash
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS ithaca;"
+psql -U postgres -c "CREATE DATABASE ithaca;"
 ```
 
-### 2.3 Environment Setup
+Or use a free [Neon](https://neon.com) project instead of a local Postgres install — create a project, then copy its connection string into `DATABASE_URL` below (see [Neon Deployment](#neon-deployment) for branching/pooling notes).
 
+## 3. Environment Setup
 
-Create `backend/.env`:
+Create `backend/.env` (see `backend/.env.example`):
 
 ```env
-DATABASE_URL="mysql://root@localhost:3306/ithaca"
+DATABASE_URL="postgresql://postgres:root@localhost:5432/ithaca"
 APP_PORT=4000
 FRONTEND_URL="http://localhost:5173"
 JWT_ACCESS_SECRET="change-this-jwt-secret-at-least-32-chars"
@@ -331,7 +300,7 @@ cd backend
 npm run seed:google-config
 ```
 
-This stores the Google OAuth config as a global encrypted provider config in MySQL. Google sign-in uses the same config and automatically connects the first Drive account. Logged-in users can still click `Connect Drive` in Settings to add more Drive accounts.
+This stores the Google OAuth config as a global encrypted provider config in the database. Google sign-in uses the same config and automatically connects the first Drive account. Logged-in users can still click `Connect Drive` in Settings to add more Drive accounts.
 
 ## 7. Run Development Servers
 
@@ -363,7 +332,7 @@ http://localhost:5173
 
 ## Docker Deployment
 
-This repository includes Docker files for running MySQL, backend, and frontend together.
+This repository includes Docker files for running Postgres, backend, and frontend together.
 
 Files:
 
@@ -389,26 +358,22 @@ On Windows PowerShell:
 Copy-Item .env.docker.example .env
 ```
 
-Edit `.env`:
+Edit `.env` (see `.env.docker.example`):
 
 ```env
-MYSQL_ROOT_PASSWORD=root
-MYSQL_DATABASE=ithaca
+POSTGRES_PASSWORD=root
+POSTGRES_DB=ithaca
 
 FRONTEND_URL=http://localhost:5173
 VITE_API_URL=http://localhost:4000
-VITE_RECAPTCHA_SITE_KEY=
 
 JWT_ACCESS_SECRET=replace-with-long-random-secret
 TOKEN_ENCRYPTION_KEY=replace-with-long-random-secret
-RECAPTCHA_SECRET_KEY=
 
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:4000/connected-accounts/google/callback
 ```
-
-Captcha is disabled when either `VITE_RECAPTCHA_SITE_KEY` or `RECAPTCHA_SECRET_KEY` is empty.
 
 ### 2. Start Containers
 
@@ -421,7 +386,8 @@ Services:
 ```txt
 frontend: http://localhost:5173
 backend:  http://localhost:4000
-mysql:    localhost:3306
+postgres: localhost:5432
+adminer:  http://localhost:8081
 ```
 
 The backend container runs Prisma migrations automatically on startup:
@@ -446,14 +412,14 @@ Automatic Docker startup seeding is usually enough. If you update Google OAuth v
 docker compose exec backend npm run seed:google-config
 ```
 
-This stores `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` from Docker env into MySQL as encrypted global config.
+This stores `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` from Docker env into the database as encrypted global config.
 
 ### 4. View Logs
 
 ```bash
 docker compose logs -f backend
 docker compose logs -f frontend
-docker compose logs -f mysql
+docker compose logs -f postgres
 ```
 
 ### 5. Stop Containers
@@ -474,7 +440,7 @@ docker compose down -v
 - Update Google OAuth authorized JavaScript origin.
 - Update Google OAuth redirect URI.
 - Use strong `JWT_ACCESS_SECRET` and `TOKEN_ENCRYPTION_KEY`.
-- Do not expose MySQL port publicly in production.
+- Do not expose the Postgres port publicly in production.
 - Put frontend/backend behind HTTPS reverse proxy.
 - Rebuild frontend when `VITE_API_URL` changes because Vite embeds env at build time.
 - Rebuild frontend when `VITE_RECAPTCHA_SITE_KEY` changes because Vite embeds env at build time.
@@ -526,6 +492,17 @@ docker compose exec backend npm run seed:google-config
 3. In **Authorized JavaScript origins**, add your frontend URL (e.g., `http://your-vps-ip:5173` or `https://ithaca.yourdomain.com`).
 4. In **Authorized redirect URIs**, add your redirect URI (e.g., `http://your-vps-ip:4000/connected-accounts/google/callback` or `https://api.ithaca.yourdomain.com/connected-accounts/google/callback`).
 5. Save changes.
+
+### Neon Deployment
+
+Instead of running Postgres yourself (local container or VPS), point `DATABASE_URL` at a [Neon](https://neon.com) project — a free-tier serverless Postgres host with instant branching, which pairs well with `main`/`dev` environment separation:
+
+1. Create a Neon project. It ships with a default `main`/`production` branch.
+2. Create a `dev` branch off it (Neon console, or `npx prisma migrate dev` locally against it) for pre-prod checks — each branch gets its own connection string, so `dev` and prod never collide.
+3. Copy the branch's **pooled** connection string (`-pooler` in the hostname) into `DATABASE_URL`.
+4. Run `npm run db:migrate:deploy` against that URL to apply migrations, same as any other Postgres target.
+
+Neon's free tier: 0.5 GB storage and 10 branches per project, shared across branches — see [Neon's plan limits](https://neon.com/docs/introduction/plans) for current numbers.
 
 ### Non-Docker Production Startup
 
@@ -655,8 +632,8 @@ file
 
 - Backend never stores uploaded files on disk.
 - Uploads are streamed through the backend to Google Drive folder `Ithaca`.
-- Google tokens are encrypted in MySQL.
-- Refresh tokens for app sessions are hashed in MySQL.
+- Google tokens are encrypted in the database.
+- Refresh tokens for app sessions are hashed in the database.
 - Google auth handoff tokens, public share tokens, and preview tokens are hashed before lookup/use.
 - `backend/.env` is ignored by git.
 - Do not expose `TOKEN_ENCRYPTION_KEY`, `JWT_ACCESS_SECRET`, `RECAPTCHA_SECRET_KEY`, OAuth client secrets, or raw share/preview/handoff tokens.
