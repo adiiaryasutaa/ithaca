@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-Ithaca is a Google Drive storage gateway. It lets users log in with email/password or Google, automatically connect the first Drive account during Google sign-in, connect additional Google Drive accounts, track combined quota, upload files through the backend into a dedicated Google Drive `Ithaca` folder, organize files in virtual folders, preview/download/share files, sync MySQL file records from Google Drive, invite other users to files/folders, and route uploads to a connected Drive account with enough free space.
+Ithaca is a Google Drive storage gateway. It lets users log in with email/password or Google, automatically connect the first Drive account during Google sign-in, connect additional Google Drive accounts, track combined quota, upload files through the backend into a dedicated Google Drive `Ithaca` folder, organize files in virtual folders, preview/download/share files, sync Postgres file records from Google Drive, invite other users to files/folders, and route uploads to a connected Drive account with enough free space.
 
 ## Repository Structure
 
-- `backend/`: Express API, TypeScript, Prisma schema/migrations, MySQL access, auth, Google OAuth/Drive integration.
+- `backend/`: Express API, TypeScript, Prisma schema/migrations, Postgres access, auth, Google OAuth/Drive integration.
 - `frontend/`: Vite React app, protected dashboard UI, file/folder management, sharing, uploads, quota/settings pages.
-- `docker-compose.yml`: MySQL, backend, and nginx-served frontend services.
+- `docker-compose.yml`: Postgres, backend, and nginx-served frontend services. Production/staging point `DATABASE_URL` at a Neon (serverless Postgres) branch instead of the local container.
 - `.env.docker.example`: Docker environment template.
 - `README.md`: local setup, Google Cloud setup, Docker notes, deployment notes.
 
@@ -16,7 +16,7 @@ Ithaca is a Google Drive storage gateway. It lets users log in with email/passwo
 
 - Node.js 20+
 - npm
-- MySQL 8+
+- Postgres 16+ (or a [Neon](https://neon.com) connection string)
 - Google Cloud project with Google Drive API enabled
 - Google OAuth client ID and secret
 
@@ -26,7 +26,7 @@ Stack:
 - Express 5
 - TypeScript
 - Prisma 6
-- MySQL
+- Postgres
 - Zod
 - JWT bearer auth
 - Argon2 password hashing
@@ -224,21 +224,21 @@ Uploads:
 - File fields then match `filesMeta[*].fieldName`, e.g. `file-0`, `file-1`.
 - Backend selects a connected Drive account with enough available quota and streams each file directly to Google Drive.
 - Google Drive uploads are placed under the root Drive folder named `Ithaca`; virtual folders remain app/database-only.
-- `POST /files/sync-google` treats Google Drive folder `Ithaca` as source of truth for physical files: create missing MySQL file rows, update changed metadata, and mark missing Drive files as deleted.
+- `POST /files/sync-google` treats Google Drive folder `Ithaca` as source of truth for physical files: create missing Postgres file rows, update changed metadata, and mark missing Drive files as deleted.
 
 ## Docker
 
 Commands:
-- `docker compose up -d --build`: build and start MySQL, backend, frontend.
+- `docker compose up -d --build`: build and start Postgres, backend, frontend.
 - `docker compose exec backend npm run seed:google-config`: seed Google config inside backend container.
 - `docker compose logs -f backend`: backend logs.
 - `docker compose logs -f frontend`: frontend logs.
-- `docker compose logs -f mysql`: MySQL logs.
+- `docker compose logs -f postgres`: Postgres logs.
 - `docker compose down`: stop services.
 - `docker compose down -v`: stop services and remove DB volume.
 
 Docker notes:
-- MySQL image is `mysql:8.4`.
+- Postgres image is `postgres:16`.
 - Backend listens on `4000`.
 - Frontend build is served by nginx on host port `5173`.
 - Frontend build arg `VITE_API_URL` is embedded at build time.

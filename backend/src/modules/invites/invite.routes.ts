@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
+import { normalizeEmail } from '../../utils/email.js';
 
 export const inviteRouter = Router();
 inviteRouter.use(requireAuth);
@@ -151,7 +152,7 @@ inviteRouter.get('/', async (req: AuthRequest, res, next) => {
 inviteRouter.post('/', async (req: AuthRequest, res, next) => {
   try {
     const body = inviteSchema.parse(req.body);
-    const email = body.email.trim().toLowerCase();
+    const email = normalizeEmail(body.email);
     const inviter = await prisma.user.findUniqueOrThrow({
       where: { id: req.user!.id },
       select: { email: true },

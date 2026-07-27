@@ -4,6 +4,7 @@ import { prisma } from '../../config/prisma.js';
 import { requireAuth, requireAdmin, type AuthRequest } from '../../middleware/auth.middleware.js';
 import { hashPassword } from '../../utils/password.js';
 import { createAuditLog } from '../../utils/audit.js';
+import { normalizeEmail } from '../../utils/email.js';
 
 export const userRouter = Router();
 userRouter.use(requireAuth, requireAdmin);
@@ -64,13 +65,14 @@ userRouter.get('/:id', async (req: AuthRequest, res, next) => {
 userRouter.post('/', async (req: AuthRequest, res, next) => {
   try {
     const body = createSchema.parse(req.body);
-    const existing = await prisma.user.findUnique({ where: { email: body.email } });
+    const email = normalizeEmail(body.email);
+    const existing = await prisma.user.findUnique({ where: { email } });
     if (existing)
       return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'Email already registered.' });
     const user = await prisma.user.create({
       data: {
         name: body.name,
-        email: body.email,
+        email,
         passwordHash: await hashPassword(body.password),
         role: body.role,
       },
@@ -97,7 +99,7 @@ userRouter.patch('/:id', async (req: AuthRequest, res, next) => {
       passwordHash?: string;
     } = {
       name: body.name,
-      email: body.email,
+      email: body.email ? normalizeEmail(body.email) : undefined,
       role: body.role,
       status: body.status,
     };

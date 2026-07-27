@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from '../../utils/password.js';
 import { encryptText, hashToken, randomToken } from '../../utils/crypto.js';
 import { signAccessToken } from '../../utils/jwt.js';
 import { createOAuthClient, syncGoogleQuota } from '../google/google.service.js';
+import { normalizeEmail } from '../../utils/email.js';
 
 export const authRouter = Router();
 
@@ -34,7 +35,7 @@ async function createSession(userId: string, req: AuthRequest) {
 authRouter.post('/login', async (req, res, next) => {
   try {
     const body = loginSchema.parse(req.body);
-    const user = await prisma.user.findUnique({ where: { email: body.email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizeEmail(body.email) } });
     if (!user || !(await verifyPassword(user.passwordHash, body.password)))
       return res
         .status(401)
@@ -101,9 +102,9 @@ authRouter.get('/google/callback', async (req, res) => {
     const oauth2 = google.oauth2({ version: 'v2', auth: client });
     const profile = await oauth2.userinfo.get();
     const providerAccountId = profile.data.id;
-    const email = profile.data.email;
-    if (!providerAccountId || !email)
+    if (!providerAccountId || !profile.data.email)
       return res.redirect(`${env.FRONTEND_URL}/google-auth?status=error`);
+    const email = normalizeEmail(profile.data.email);
 
     const name = profile.data.name || email.split('@')[0] || 'Google User';
     const user = await prisma.user.upsert({

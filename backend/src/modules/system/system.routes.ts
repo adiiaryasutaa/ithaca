@@ -206,6 +206,13 @@ systemRouter.post('/google-config', requireAuth, async (req, res, next) => {
 
 systemRouter.get('/backup', requireAuth, (req, res, next) => {
   try {
+    if (!isSqliteMode()) {
+      return res.status(501).json({
+        code: 'NOT_SUPPORTED',
+        message:
+          'DB backup/restore only supports SQLite-mode deployments. This instance runs on Postgres/MySQL — use the provider\'s own backup tooling (e.g. Neon branch snapshots, mysqldump).',
+      });
+    }
     const dbPath = getDatabaseFilePath();
     if (!fs.existsSync(dbPath)) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Database file not found.' });
@@ -221,6 +228,13 @@ systemRouter.get('/backup', requireAuth, (req, res, next) => {
 
 systemRouter.post('/restore', requireAuth, (req, res, next) => {
   try {
+    if (!isSqliteMode()) {
+      return res.status(501).json({
+        code: 'NOT_SUPPORTED',
+        message:
+          'DB backup/restore only supports SQLite-mode deployments. This instance runs on Postgres/MySQL — use the provider\'s own backup tooling (e.g. Neon branch snapshots, mysqldump).',
+      });
+    }
     const contentType = req.headers['content-type'];
     if (!contentType?.includes('multipart/form-data')) {
       return res
@@ -305,6 +319,11 @@ systemRouter.post('/restore', requireAuth, (req, res, next) => {
     return next(error);
   }
 });
+
+function isSqliteMode(): boolean {
+  const dbUrl = process.env.DATABASE_URL || '';
+  return dbUrl.startsWith('sqlite:') || dbUrl.startsWith('file:');
+}
 
 function getDatabaseFilePath(): string {
   const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';

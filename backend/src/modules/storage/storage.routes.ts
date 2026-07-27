@@ -113,8 +113,8 @@ storageRouter.get('/breakdown', async (_req: AuthRequest, res, next) => {
     const rows = await prisma.$queryRaw<BreakdownRow[]>`
       SELECT
         CASE
-          WHEN mime_type LIKE 'image/%' THEN 'photo'
-          WHEN mime_type LIKE 'video/%' THEN 'video'
+          WHEN mime_type ILIKE 'image/%' THEN 'photo'
+          WHEN mime_type ILIKE 'video/%' THEN 'video'
           ELSE 'document'
         END AS kind,
         COALESCE(SUM(size_bytes), 0) AS bytes

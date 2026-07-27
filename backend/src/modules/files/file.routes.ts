@@ -85,7 +85,7 @@ fileRouter.get('/', async (req: AuthRequest, res, next) => {
     const where: any = {
       status: 'active',
       ...(query.folderId ? { folderId: query.folderId } : query.unfiled ? { folderId: null } : {}),
-      ...(query.q ? { name: { contains: query.q } } : {}),
+      ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
       ...(query.accountId ? { connectedAccountId: query.accountId } : {}),
       ...(query.kind ? { mimeType: { in: typeFilters[query.kind] || [] } } : {}),
       ...(query.minSize !== undefined || query.maxSize !== undefined
@@ -172,7 +172,7 @@ fileRouter.get('/trash', async (req: AuthRequest, res, next) => {
     const files = await prisma.file.findMany({
       where: {
         status: 'deleted',
-        ...(query.q ? { name: { contains: query.q } } : {}),
+        ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
       },
       include: {
         connectedAccount: { select: { id: true, email: true, provider: true } },
