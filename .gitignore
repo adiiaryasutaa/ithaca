@@ -3,6 +3,8 @@ dist/
 *.log
 .DS_Store
 .vscode/
+.claude/
+docs/superpowers/
 
 # Secrets
 .env
