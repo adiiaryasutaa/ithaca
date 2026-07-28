@@ -25,7 +25,6 @@ import {
 } from './stream-google-file.js';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
-import { ZipArchive } from 'archiver';
 import { createAuditLog } from '../../utils/audit.js';
 
 export const fileRouter = Router();
@@ -575,6 +574,7 @@ fileRouter.post('/batch-download', async (req: AuthRequest, res, next) => {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', 'attachment; filename="ithaca-download.zip"');
 
+    const { ZipArchive } = await import('archiver');
     const archive = new ZipArchive({ zlib: { level: 9 } });
     archive.on('error', (err: any) => {
       throw err;
