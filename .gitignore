@@ -5,6 +5,8 @@ dist/
 
 # Secrets
 .env
+.env.prod
+.env.preview
 backend/.env
 backend/.env.local
 backend/.env.*.local
