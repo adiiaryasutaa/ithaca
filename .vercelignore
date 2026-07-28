@@ -1,0 +1,10 @@
+AGENTS.md
+CLAUDE.md
+README.md
+.prettierignore
+.prettierrc.json
+.claude
+.vscode
+docs
+docker-compose.yml
+.env.docker.example
