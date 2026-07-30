@@ -110,21 +110,51 @@ Stack:
 - clsx
 - tailwind-merge
 
+Component organization is Atomic Design. Components live under `frontend/src/components/` in
+five tiers, and imports only ever point *down* the list:
+
+| Tier | Holds | May import |
+| --- | --- | --- |
+| `ui/` | shadcn primitives, vendored by the CLI | — |
+| `atoms/` | one element, no app state (BrandLogo, FileIcon, StatusBadge) | `ui/`, `lib/` |
+| `molecules/` | a few atoms, still dumb (PageHeader, MetricCard, CodeBlock, QuotaBar) | atoms, `ui/`, `lib/` |
+| `organisms/` | owns a whole section; may read hooks/context and fetch its own data (FileTable, AppHeader, the dialogs, the settings cards) | molecules and below, `hooks/`, `context/` |
+| `templates/` | page shell (DriveLayout) | organisms and below |
+| `pages/` (in `src/pages/`) | route + state + composition | everything |
+
+Rules:
+- `components/ui/` is off-limits to the tier scheme. It is vendored by `npx shadcn@latest add`
+  against the path in `components.json`; do not move it or hand-edit generated primitives.
+- Never import upward, and never sideways within a tier. An atom that needs another atom is a
+  molecule.
+- A dialog opened *by a page* stays presentational: props in, callbacks out, mutations in the
+  page. A self-contained section organism (e.g. `SystemUpdateCard`) may own its own fetching
+  when nothing else on the page reads that data.
+- Non-component code does not belong in component files: types, constants, formatters and
+  request helpers go to `lib/`; stateful reusable logic goes to `hooks/`.
+- No barrel `index.ts` files — import the exact path so the dependency direction stays visible.
+- There is no ESLint in this project, so the tier rule is review-enforced.
+
 Important files:
 - `frontend/src/main.tsx`: React entrypoint.
 - `frontend/src/App.tsx`: route registration.
-- `frontend/src/layouts/DriveLayout.tsx`: protected app shell, sidebar, header search, storage sidebar stats.
+- `frontend/src/routes/ProtectedRoute.tsx`: auth guard wrapping the dashboard routes.
+- `frontend/src/components/templates/DriveLayout.tsx`: protected app shell (sidebar, header, upload panel).
+- `frontend/src/components/organisms/AppHeader.tsx`: search box and advanced filters; writes them to the URL.
 - `frontend/src/pages/AllFilesPage.tsx`: core file/folder UI, uploads, context menus, preview, share/invite modals.
 - `frontend/src/pages/SharedPage.tsx`: shared links and invites UI.
 - `frontend/src/pages/QuotaTrackerPage.tsx`: connected-account quota UI.
-- `frontend/src/pages/SettingsPage.tsx`: Google account/settings UI.
+- `frontend/src/pages/SettingsPage.tsx`: account, connected storage, and admin ops UI.
 - `frontend/src/pages/GoogleAuthPage.tsx`: Google auth handoff exchange page.
 - `frontend/src/pages/PublicFilePage.tsx`: public shared file viewer/embed page.
-- `frontend/src/components/auth/GoogleLogo.tsx`: Google button logo.
-- `frontend/src/components/drive/**`: drive-specific UI components.
-- `frontend/src/components/ui/**`: reusable UI primitives.
+- `frontend/src/components/ui/**`: vendored shadcn primitives.
+- `frontend/src/hooks/use-drive-files.ts`: file/folder listing, folder path, upload-completed refresh.
 - `frontend/src/lib/api.ts`: API helper, token refresh retry, formatting utilities.
 - `frontend/src/lib/auth.ts`: local auth session storage.
+- `frontend/src/lib/provider.ts`: ConnectedAccount type and provider/quota labels.
+- `frontend/src/lib/drive-mappers.ts`: backend file/folder payloads to UI shapes.
+- `frontend/src/lib/google-connect.ts`: shared Google OAuth popup flow.
+- `frontend/src/lib/download.ts`: authenticated blob downloads.
 - `frontend/src/lib/plyr.ts`: video preview player loading.
 - `frontend/src/style.css`: Tailwind import and global styles.
 
@@ -138,6 +168,7 @@ Environment:
 
 Frontend conventions:
 - Use `@/*` imports for files under `frontend/src`.
+- Place new components in the correct Atomic Design tier and respect the one-way import rule above.
 - Keep route registration in `frontend/src/App.tsx`.
 - Use `apiFetch` for normal JSON API calls.
 - Use raw `fetch` or `XMLHttpRequest` only when response streaming/blob/progress requires it.
