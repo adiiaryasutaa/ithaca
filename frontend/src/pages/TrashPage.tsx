@@ -1,24 +1,11 @@
 import { useEffect, useState } from 'react';
-import { RotateCcw, Trash2, FileText } from 'lucide-react';
+import { RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/molecules/PageHeader';
-import { apiFetch, formatBytes } from '@/lib/api';
+import { TrashTable, type TrashFile } from '@/components/organisms/TrashTable';
+import { apiFetch } from '@/lib/api';
 import { confirmToast } from '@/lib/confirm-toast';
-
-type TrashFile = {
-  id: string;
-  name: string;
-  mimeType: string;
-  sizeBytes: string;
-  provider: string;
-  deletedAt: string;
-  connectedAccount: {
-    email: string;
-    provider: string;
-  };
-};
 
 export function TrashPage() {
   const [files, setFiles] = useState<TrashFile[]>([]);
@@ -137,91 +124,15 @@ export function TrashPage() {
         }
       />
 
-      <Card className="mt-6 min-w-0 overflow-x-auto p-0">
-        {files.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center">
-            <Trash2 className="h-12 w-12 text-muted-foreground mb-3" />
-            <p className="text-base font-bold">Trash is empty</p>
-            <p className="text-sm text-muted-foreground mt-1">Deleted files will appear here.</p>
-          </div>
-        ) : (
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-border text-xs uppercase text-muted-foreground">
-                <th className="w-9 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === files.length && files.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded-sm border-input"
-                  />
-                </th>
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Account</th>
-                <th className="px-4 py-3 font-semibold">Size</th>
-                <th className="px-4 py-3 font-semibold">Deleted At</th>
-                <th className="px-4 py-3 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file) => (
-                <tr key={file.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(file.id)}
-                      onChange={() => toggleSelect(file.id)}
-                      className="rounded-sm border-input"
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-foreground">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <span className="truncate max-w-xs sm:max-w-md block" title={file.name}>
-                        {file.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {file.connectedAccount.email} ({file.provider})
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatBytes(file.sizeBytes)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Intl.DateTimeFormat('en', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    }).format(new Date(file.deletedAt))}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRestore([file.id])}
-                        disabled={loading}
-                        title="Restore"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        Restore
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handlePermanentDelete([file.id])}
-                        disabled={loading}
-                        title="Delete Permanently"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      <TrashTable
+        files={files}
+        selectedIds={selectedIds}
+        busy={loading}
+        onToggle={toggleSelect}
+        onToggleAll={toggleSelectAll}
+        onRestore={handleRestore}
+        onPermanentDelete={handlePermanentDelete}
+      />
     </>
   );
 }

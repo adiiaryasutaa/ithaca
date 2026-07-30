@@ -1,40 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Clock, FileArchive, Folder, Trash2, Users, UserCheck } from 'lucide-react';
+import { Clock, UserCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { MetricCard } from '@/components/molecules/MetricCard';
 import { PageHeader } from '@/components/molecules/PageHeader';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { apiFetch, formatBytes, formatDate } from '@/lib/api';
-import { cn } from '@/lib/utils';
-
-type InviteTarget = {
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-  mimeType?: string;
-  sizeBytes?: string;
-};
-type Invite = {
-  id: string;
-  email: string;
-  role: string;
-  status: string;
-  targetType: 'file' | 'folder';
-  targetId: string;
-  target: InviteTarget | null;
-  createdAt: string;
-  acceptedAt: string | null;
-  user: { id: string; name: string; email: string } | null;
-};
-
-function ResourceIcon({ type }: { type: 'file' | 'folder' }) {
-  return type === 'folder' ? (
-    <Folder className="h-5 w-5 text-primary" />
-  ) : (
-    <FileArchive className="h-5 w-5 text-primary" />
-  );
-}
+import { InviteList, type Invite } from '@/components/organisms/InviteList';
+import { apiFetch } from '@/lib/api';
 
 export function SharedPage() {
   const [sentInvites, setSentInvites] = useState<Invite[]>([]);
@@ -52,6 +22,7 @@ export function SharedPage() {
     loadInvites().catch((error) =>
       toast.error(error instanceof Error ? error.message : 'Failed to load shared resources'),
     );
+    // AllFilesPage dispatches this after sending an invite from a context menu.
     window.addEventListener('ithaca:invites-changed', loadInvites);
     return () => window.removeEventListener('ithaca:invites-changed', loadInvites);
   }, []);
@@ -77,98 +48,22 @@ export function SharedPage() {
         <MetricCard label="Pending Invites" value={String(pendingCount)} icon={Clock} />
       </div>
 
-      <Card className="mt-8 p-5">
-        <h2 className="font-extrabold">Shared With You</h2>
-        <div className="grid gap-3">
-          {receivedInvites.length === 0 ? (
-            <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
-              No files or folders have been shared with you yet.
-            </p>
-          ) : (
-            receivedInvites.map((invite) => (
-              <div
-                key={invite.id}
-                className="flex flex-col gap-3 rounded-sm bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <ResourceIcon type={invite.targetType} />
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-foreground">
-                      {invite.target?.name ?? 'Unavailable resource'}
-                    </p>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {invite.targetType} • {invite.role}
-                      {invite.target?.sizeBytes ? ` • ${formatBytes(invite.target.sizeBytes)}` : ''}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={cn(
-                    'w-fit rounded-full px-3 py-1 text-xs font-bold capitalize',
-                    invite.status === 'accepted'
-                      ? 'bg-emerald-500/10 text-emerald-600'
-                      : 'bg-amber-50 text-amber-700',
-                  )}
-                >
-                  {invite.status}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-      </Card>
+      <InviteList
+        className="mt-8"
+        title="Shared With You"
+        direction="received"
+        invites={receivedInvites}
+        emptyMessage="No files or folders have been shared with you yet."
+      />
 
-      <Card className="mt-6 p-5">
-        <h2 className="font-extrabold">Resources You Shared</h2>
-        <div className="grid gap-3">
-          {sentInvites.length === 0 ? (
-            <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">
-              No files or folders shared yet. Use Invite Members from the top bar.
-            </p>
-          ) : (
-            sentInvites.map((invite) => (
-              <div
-                key={invite.id}
-                className="flex flex-col gap-3 rounded-sm bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <ResourceIcon type={invite.targetType} />
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-foreground">
-                      {invite.target?.name ?? 'Unavailable resource'}
-                    </p>
-                    <p className="break-all text-sm text-muted-foreground">
-                      Shared with {invite.email}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Invited {formatDate(invite.createdAt)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-card px-3 py-1 text-xs font-bold capitalize text-muted-foreground">
-                    {invite.role}
-                  </span>
-                  <span
-                    className={cn(
-                      'rounded-full px-3 py-1 text-xs font-bold capitalize',
-                      invite.status === 'accepted'
-                        ? 'bg-emerald-500/10 text-emerald-600'
-                        : 'bg-amber-50 text-amber-700',
-                    )}
-                  >
-                    {invite.status}
-                  </span>
-                  <Button variant="destructive" size="sm" onClick={() => revokeInvite(invite.id)}>
-                    <Trash2 className="h-4 w-4" />
-                    Revoke
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Card>
+      <InviteList
+        className="mt-6"
+        title="Resources You Shared"
+        direction="sent"
+        invites={sentInvites}
+        emptyMessage="No files or folders shared yet. Use Invite Members from the top bar."
+        onRevoke={revokeInvite}
+      />
     </>
   );
 }
