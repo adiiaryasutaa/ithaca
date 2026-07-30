@@ -1,9 +1,9 @@
 import { Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FileTable } from '@/components/drive/FileTable';
-import { MetricCard } from '@/components/drive/MetricCard';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { FileTable } from '@/components/organisms/FileTable';
+import { MetricCard } from '@/components/molecules/MetricCard';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { archivedFiles } from '@/data/drive-data';
 
 export function ArchivedPage() {

@@ -1,7 +1,7 @@
 import { MoreVertical, Star } from 'lucide-react';
 import { type DragEvent, type MouseEvent, useState } from 'react';
-import { FileIcon } from '@/components/drive/FileIcon';
-import { FolderVisual } from '@/components/drive/FolderVisual';
+import { FileIcon } from '@/components/atoms/FileIcon';
+import { FolderVisual } from '@/components/atoms/FolderVisual';
 import type { FileItem, FolderItem } from '@/data/drive-data';
 import { apiFetch } from '@/lib/api';
 
@@ -240,9 +240,7 @@ export function FileTable({
                 </td>
                 {mode === 'shared' ? <td className="px-4 py-3 text-muted-foreground">—</td> : null}
                 {mode === 'recent' ? <td className="px-4 py-3 text-muted-foreground">—</td> : null}
-                {mode === 'starred' ? (
-                  <td className="px-4 py-3 text-muted-foreground">—</td>
-                ) : null}
+                {mode === 'starred' ? <td className="px-4 py-3 text-muted-foreground">—</td> : null}
                 {mode === 'archived' ? (
                   <td className="px-4 py-3 text-muted-foreground">—</td>
                 ) : null}

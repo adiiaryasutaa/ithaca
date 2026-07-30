@@ -15,7 +15,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import { BrandLogo } from '@/components/drive/BrandLogo';
+import { BrandLogo } from '@/components/atoms/BrandLogo';
 import {
   DropdownMenu,
   DropdownMenuContent,

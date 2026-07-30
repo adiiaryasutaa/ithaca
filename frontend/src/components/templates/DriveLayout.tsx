@@ -26,8 +26,8 @@ import {
   AppSidebar,
   type StorageBreakdown,
   type StorageSummary,
-} from '@/components/drive/AppSidebar';
-import { BrandLogo } from '@/components/drive/BrandLogo';
+} from '@/components/organisms/AppSidebar';
+import { BrandLogo } from '@/components/atoms/BrandLogo';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { getStoredSidebarCollapsed, setStoredSidebarCollapsed } from '@/lib/sidebar-storage';
 import { Input } from '@/components/ui/input';

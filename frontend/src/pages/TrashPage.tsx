@@ -3,7 +3,7 @@ import { RotateCcw, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { apiFetch, formatBytes } from '@/lib/api';
 import { confirmToast } from '@/lib/confirm-toast';
 

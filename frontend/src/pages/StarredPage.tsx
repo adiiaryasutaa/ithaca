@@ -1,8 +1,8 @@
 import { FileText, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { FileTable } from '@/components/drive/FileTable';
-import { MetricCard } from '@/components/drive/MetricCard';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { FileTable } from '@/components/organisms/FileTable';
+import { MetricCard } from '@/components/molecules/MetricCard';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { files } from '@/data/drive-data';
 
 const starred = files.filter((file) => file.starredDate);

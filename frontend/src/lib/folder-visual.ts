@@ -1,7 +1,3 @@
-import { Folder } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { FolderItem } from '@/data/drive-data';
-
 const legacyColorMap: Record<string, string> = {
   'text-blue-500': '#3b82f6',
   'text-lime-500': '#84cc16',
@@ -80,33 +76,4 @@ export function normalizeFolderColor(color?: string | null) {
 export function iconUrlWithColor(iconUrl: string, color: string) {
   const separator = iconUrl.includes('?') ? '&' : '?';
   return `${iconUrl}${separator}color=${encodeURIComponent(color)}`;
-}
-
-export function FolderVisual({
-  folder,
-  className,
-  iconClassName,
-}: {
-  folder: Pick<FolderItem, 'color' | 'iconUrl'>;
-  className?: string;
-  iconClassName?: string;
-}) {
-  const color = normalizeFolderColor(folder.color);
-  const iconUrl = folder.iconUrl || defaultFolderIconUrl;
-  return (
-    <span className={cn('inline-flex items-center justify-center', className)}>
-      {iconUrl ? (
-        <img
-          src={iconUrlWithColor(iconUrl, color)}
-          alt=""
-          className={cn('h-full w-full object-contain', iconClassName)}
-        />
-      ) : (
-        <Folder
-          className={cn('h-full w-full fill-current stroke-current', iconClassName)}
-          style={{ color }}
-        />
-      )}
-    </span>
-  );
 }

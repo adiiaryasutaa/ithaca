@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Clock, FileArchive, Folder, Trash2, Users, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { MetricCard } from '@/components/drive/MetricCard';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { MetricCard } from '@/components/molecules/MetricCard';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { apiFetch, formatBytes, formatDate } from '@/lib/api';

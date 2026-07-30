@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Cloud, Database, Filter, Gauge, Link2, RefreshCw } from 'lucide-react';
+import { CheckCircle, Cloud, Filter, Gauge, Link2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,53 +10,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { PageHeader } from '@/components/molecules/PageHeader';
+import { ProviderIcon } from '@/components/atoms/ProviderIcon';
 import { apiFetch, formatBytes } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import {
+  availableLabel,
+  providerLabel,
+  storageLimitLabel,
+  usedPercent as pct,
+  type ConnectedAccount,
+} from '@/lib/provider';
 
 type StorageSummary = { totalBytes: string; usedBytes: string; availableBytes: string };
-type ConnectedAccount = {
-  id: string;
-  email: string;
-  displayName?: string | null;
-  provider: string;
-  status: string;
-  storageAccount?: {
-    totalBytes: string | null;
-    usedBytes: string;
-    availableBytes: string | null;
-    lastSyncedAt: string | null;
-  } | null;
-};
 type RoutingMode = 'most_available' | 'round_robin' | 'priority';
 type RoutingPolicy = { mode: RoutingMode; priorityAccountIds: string[]; roundRobinCursor: number };
-
-function providerLabel(provider: string) {
-  if (provider === 's3') return 'S3 Storage';
-  return 'Google Drive';
-}
-
-function ProviderIcon({ provider }: { provider: string }) {
-  const Icon = provider === 's3' ? Database : Cloud;
-  return <Icon className="h-6 w-6" />;
-}
-
-function storageLimitLabel(account: ConnectedAccount) {
-  if (account.provider === 's3' && account.storageAccount?.totalBytes === null) return 'Unlimited';
-  return formatBytes(account.storageAccount?.totalBytes);
-}
-
-function availableLabel(account: ConnectedAccount) {
-  if (account.provider === 's3' && account.storageAccount?.availableBytes === null)
-    return 'Unlimited';
-  return formatBytes(account.storageAccount?.availableBytes);
-}
-
-function pct(account: ConnectedAccount) {
-  const total = Number(account.storageAccount?.totalBytes ?? 0);
-  const used = Number(account.storageAccount?.usedBytes ?? 0);
-  return total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
-}
 
 function statusColor(percent: number) {
   if (percent >= 80) return 'bg-red-500 text-destructive';

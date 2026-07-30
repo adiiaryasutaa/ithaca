@@ -4,7 +4,7 @@ import { HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { GoogleLogo } from '@/components/auth/GoogleLogo';
+import { GoogleLogo } from '@/components/atoms/GoogleLogo';
 import { Input } from '@/components/ui/input';
 import { apiFetch } from '@/lib/api';
 import { setAuthSession, type AuthUser } from '@/lib/auth';

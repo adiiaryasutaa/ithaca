@@ -6,41 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
-import { DummyModal } from '@/components/drive/DummyModal';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { DummyModal } from '@/components/molecules/DummyModal';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { apiFetch, formatBytes, API_URL } from '@/lib/api';
 import { getGravatarUrl } from '@/lib/gravatar';
 import { getStoredUser, getAccessToken, clearAuthSession } from '@/lib/auth';
-
-type ConnectedAccount = {
-  id: string;
-  provider: string;
-  email: string;
-  displayName?: string | null;
-  status: string;
-  storageAccount?: {
-    totalBytes: string | null;
-    usedBytes: string;
-    availableBytes: string | null;
-    lastSyncedAt: string | null;
-  } | null;
-};
-
-function providerLabel(provider: string) {
-  if (provider === 's3') return 'S3 Storage';
-  return 'Google Drive';
-}
-
-function storageLimitLabel(account: ConnectedAccount) {
-  if (account.provider === 's3' && account.storageAccount?.totalBytes === null) return 'Unlimited';
-  return formatBytes(account.storageAccount?.totalBytes);
-}
-
-function availableLabel(account: ConnectedAccount) {
-  if (account.provider === 's3' && account.storageAccount?.availableBytes === null)
-    return 'Unlimited';
-  return formatBytes(account.storageAccount?.availableBytes);
-}
+import {
+  availableLabel,
+  providerLabel,
+  storageLimitLabel,
+  type ConnectedAccount,
+} from '@/lib/provider';
 
 export function SettingsPage() {
   const user = getStoredUser();

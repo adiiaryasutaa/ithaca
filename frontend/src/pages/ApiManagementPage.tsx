@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
-import { DummyModal } from '@/components/drive/DummyModal';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { DummyModal } from '@/components/molecules/DummyModal';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { API_URL, apiFetch, formatDate } from '@/lib/api';
 
 type ApiKeyTarget = { id: string; name: string };

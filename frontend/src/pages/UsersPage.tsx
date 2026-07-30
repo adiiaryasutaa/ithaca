@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { PageHeader } from '@/components/drive/PageHeader';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { apiFetch, formatDate } from '@/lib/api';
 import { getStoredUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';

@@ -22,11 +22,7 @@ export function DummyModal({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <button
-        className="absolute inset-0 bg-black/60"
-        aria-label="Close modal"
-        onClick={onClose}
-      />
+      <button className="absolute inset-0 bg-black/60" aria-label="Close modal" onClick={onClose} />
       <div
         className={cn(
           'relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-t-sm border border-border bg-card p-5 shadow-2xl sm:max-w-md sm:rounded-sm',

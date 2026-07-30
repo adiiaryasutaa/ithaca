@@ -24,20 +24,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { DummyModal } from '@/components/drive/DummyModal';
-import { EmptyAreaContextMenu } from '@/components/drive/EmptyAreaContextMenu';
-import { FileContextMenu } from '@/components/drive/FileContextMenu';
-import { FileDetailsDrawer } from '@/components/drive/FileDetailsDrawer';
-import { FileTable } from '@/components/drive/FileTable';
-import { FolderContextMenu } from '@/components/drive/FolderContextMenu';
+import { DummyModal } from '@/components/molecules/DummyModal';
+import { EmptyAreaContextMenu } from '@/components/organisms/EmptyAreaContextMenu';
+import { FileContextMenu } from '@/components/organisms/FileContextMenu';
+import { FileDetailsDrawer } from '@/components/organisms/FileDetailsDrawer';
+import { FileTable } from '@/components/organisms/FileTable';
+import { FolderContextMenu } from '@/components/organisms/FolderContextMenu';
 import {
   defaultFolderColor,
   defaultFolderIconUrl,
   folderColorOptions,
   folderIconOptions,
   normalizeFolderColor,
-} from '@/components/drive/FolderVisual';
-import { PageHeader } from '@/components/drive/PageHeader';
+} from '@/lib/folder-visual';
+import { PageHeader } from '@/components/molecules/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
 import { API_URL, apiFetch, formatBytes, formatDate } from '@/lib/api';

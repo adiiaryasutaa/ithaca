@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { DriveLayout } from '@/layouts/DriveLayout';
+import { ProtectedRoute } from '@/routes/ProtectedRoute';
+import { DriveLayout } from '@/components/templates/DriveLayout';
 import { AllFilesPage } from '@/pages/AllFilesPage';
 import { ArchivedPage } from '@/pages/ArchivedPage';
 import { LoginPage } from '@/pages/LoginPage';
