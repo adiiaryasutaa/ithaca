@@ -1,194 +1,63 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type DragEvent,
-  type FormEvent,
-  type MouseEvent,
-} from 'react';
+import { useEffect, useState, type DragEvent, type FormEvent, type MouseEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  Archive,
-  CheckCircle,
-  CheckSquare,
-  ClipboardPaste,
-  Download,
-  FolderInput,
-  FolderPlus,
-  RefreshCw,
-  Star,
-  Trash2,
-  Upload,
-  X,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ClipboardPaste } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { DummyModal } from '@/components/molecules/DummyModal';
+import { EmptyState } from '@/components/molecules/EmptyState';
+import { FolderBreadcrumbs } from '@/components/molecules/FolderBreadcrumbs';
+import { PageHeader } from '@/components/molecules/PageHeader';
+import { DeleteConfirmDialog } from '@/components/organisms/DeleteConfirmDialog';
 import { EmptyAreaContextMenu } from '@/components/organisms/EmptyAreaContextMenu';
 import { FileContextMenu } from '@/components/organisms/FileContextMenu';
 import { FileDetailsDrawer } from '@/components/organisms/FileDetailsDrawer';
+import { FilePreviewDialog } from '@/components/organisms/FilePreviewDialog';
 import { FileTable } from '@/components/organisms/FileTable';
+import { FileToolbar } from '@/components/organisms/FileToolbar';
 import { FolderContextMenu } from '@/components/organisms/FolderContextMenu';
+import { FolderFormDialog } from '@/components/organisms/FolderFormDialog';
+import { InviteMemberDialog } from '@/components/organisms/InviteMemberDialog';
+import { MoveToFolderDialog } from '@/components/organisms/MoveToFolderDialog';
+import { RenameFileDialog } from '@/components/organisms/RenameFileDialog';
+import { ShareLinkDialog } from '@/components/organisms/ShareLinkDialog';
+import { UploadFileDialog } from '@/components/organisms/UploadFileDialog';
+import { useDriveFiles } from '@/hooks/use-drive-files';
+import { useFilePreview } from '@/hooks/use-file-preview';
+import { useFileSelection } from '@/hooks/use-file-selection';
+import { useFolderClipboard } from '@/hooks/use-folder-clipboard';
+import { useInvite } from '@/hooks/use-invite';
+import { useShareLink } from '@/hooks/use-share-link';
+import { apiFetch } from '@/lib/api';
+import { downloadFileById, downloadFilesAsZip } from '@/lib/download';
 import {
   defaultFolderColor,
   defaultFolderIconUrl,
-  folderColorOptions,
-  folderIconOptions,
   normalizeFolderColor,
 } from '@/lib/folder-visual';
-import { PageHeader } from '@/components/molecules/PageHeader';
-import { Input } from '@/components/ui/input';
-import { Combobox } from '@/components/ui/combobox';
-import { API_URL, apiFetch, formatBytes, formatDate } from '@/lib/api';
-import { getAccessToken } from '@/lib/auth';
-import { createPlyr, ensurePlyr } from '@/lib/plyr';
-import { getPreviewKind, officeViewerUrl } from '@/lib/preview';
-import type { FileItem, FolderItem } from '@/data/drive-data';
 import { useUpload } from '@/context/UploadContext';
-
-type BackendFile = {
-  id: string;
-  name: string;
-  mimeType: string;
-  sizeBytes: string;
-  createdAt: string;
-  folderId?: string | null;
-  connectedAccount?: { email: string; provider: string };
-  folder?: { id: string; name: string } | null;
-};
-type BackendFolder = {
-  id: string;
-  name: string;
-  color: string;
-  iconUrl?: string | null;
-  parentId?: string | null;
-  providerFolderId?: string | null;
-  updatedAt: string;
-};
-type ConnectedAccount = {
-  id: string;
-  provider: string;
-  email: string;
-  displayName?: string | null;
-  status: string;
-};
-
-function mimeToKind(mimeType: string): FileItem['kind'] {
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.includes('pdf')) return 'pdf';
-  return 'doc';
-}
-
-function providerLabel(provider: string | undefined) {
-  if (provider === 's3') return 'S3 Storage';
-  return 'Google Drive';
-}
-
-function mapFile(file: BackendFile): FileItem {
-  return {
-    id: file.id,
-    name: file.name,
-    mimeType: file.mimeType,
-    sizeBytes: file.sizeBytes,
-    createdAt: file.createdAt,
-    accountEmail: file.connectedAccount?.email,
-    accountProvider: providerLabel(file.connectedAccount?.provider),
-    date: formatDate(file.createdAt),
-    size: formatBytes(file.sizeBytes),
-    access: file.connectedAccount?.email ?? providerLabel(file.connectedAccount?.provider),
-    kind: mimeToKind(file.mimeType),
-    shared: 1,
-    folderId: file.folderId,
-    folderName: file.folder?.name,
-  };
-}
-
-function mapFolder(folder: BackendFolder): FolderItem {
-  return {
-    id: folder.id,
-    name: folder.name,
-    color: folder.color,
-    iconUrl: folder.iconUrl,
-    parentId: folder.parentId,
-    providerFolderId: folder.providerFolderId,
-    updated: `Updated ${formatDate(folder.updatedAt)}`,
-  };
-}
-
-function FolderAppearanceFields({
-  color,
-  iconUrl,
-  onColorChange,
-  onIconChange,
-}: {
-  color: string;
-  iconUrl: string;
-  onColorChange: (color: string) => void;
-  onIconChange: (iconUrl: string) => void;
-}) {
-  const normalizedColor = normalizeFolderColor(color);
-  return (
-    <div className="grid gap-4">
-      <label className="grid gap-2 text-sm font-semibold">
-        Folder Color
-        <Input
-          type="color"
-          value={normalizedColor}
-          onChange={(event) => onColorChange(event.target.value)}
-          className="h-12 p-1"
-        />
-      </label>
-      <div className="flex flex-wrap gap-2">
-        {folderColorOptions.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onColorChange(option)}
-            className={
-              normalizedColor === option
-                ? 'h-8 w-8 rounded-sm border-2 border-ring'
-                : 'h-8 w-8 rounded-sm border border-border'
-            }
-            style={{ backgroundColor: option }}
-            aria-label={`Use ${option} folder color`}
-          />
-        ))}
-      </div>
-      <div className="grid gap-2 text-sm font-semibold">
-        <span>Folder Icon</span>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-          {folderIconOptions.map((option) => (
-            <button
-              key={option.url}
-              type="button"
-              onClick={() => onIconChange(option.url)}
-              className={
-                iconUrl === option.url
-                  ? 'flex h-12 items-center justify-center rounded-sm border-2 border-ring bg-primary/10 p-2'
-                  : 'flex h-12 items-center justify-center rounded-sm border border-border bg-muted p-2'
-              }
-              title={option.label}
-              aria-label={`Use ${option.label} icon`}
-            >
-              <img
-                src={`${option.url}?color=${encodeURIComponent(normalizedColor)}`}
-                alt=""
-                className="h-6 w-6"
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+import type { FileItem, FolderItem } from '@/data/drive-data';
 
 export function AllFilesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeFolderId = searchParams.get('folderId');
-  const searchQuery = searchParams.get('q')?.trim() ?? '';
+  const {
+    activeFolderId,
+    searchQuery,
+    files,
+    folders,
+    allFolders,
+    connectedAccounts,
+    activeFolder,
+    folderBreadcrumbs,
+    loadFiles,
+    loadFolders,
+    loadAll,
+  } = useDriveFiles(searchParams);
+  const selection = useFileSelection(files);
+  const preview = useFilePreview();
+  const share = useShareLink();
+  const invite = useInvite();
+  const clipboard = useFolderClipboard(loadFolders);
+  const { uploadFiles } = useUpload();
+
   const [uploadOpen, setUploadOpen] = useState(false);
   const [folderOpen, setFolderOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -196,17 +65,7 @@ export function AllFilesPage() {
   const [folderDeleteOpen, setFolderDeleteOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
-  const [copiedShareLink, setCopiedShareLink] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [previewError, setPreviewError] = useState('');
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [folders, setFolders] = useState<FolderItem[]>([]);
-  const [allFolders, setAllFolders] = useState<FolderItem[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState('');
   const [isUploadDragging, setIsUploadDragging] = useState(false);
@@ -219,9 +78,6 @@ export function AllFilesPage() {
   const [folderRenameIconUrl, setFolderRenameIconUrl] = useState(defaultFolderIconUrl);
   const [activeFile, setActiveFile] = useState<FileItem | null>(null);
   const [activeFolderForMenu, setActiveFolderForMenu] = useState<FolderItem | null>(null);
-  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
-  const [selectMode, setSelectMode] = useState(false);
-  const [cutFolder, setCutFolder] = useState<FolderItem | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: FileItem | null }>({
     x: 0,
     y: 0,
@@ -235,115 +91,44 @@ export function AllFilesPage() {
   const [emptyContextMenu, setEmptyContextMenu] = useState<{ x: number; y: number; open: boolean }>(
     { x: 0, y: 0, open: false },
   );
-  const [gdrivePublicUrl, setGdrivePublicUrl] = useState('');
-  const [makingPublic, setMakingPublic] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncingDrive, setSyncingDrive] = useState(false);
-  const { uploadFiles } = useUpload();
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('viewer');
-  const [inviteTargetType, setInviteTargetType] = useState<'file' | 'folder'>('file');
-  const [inviteTargetId, setInviteTargetId] = useState('');
-  const [inviteMessage, setInviteMessage] = useState('');
-  const [inviting, setInviting] = useState(false);
-  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [selectedTargetAccountId, setSelectedTargetAccountId] = useState('');
 
-  async function loadFiles() {
-    const params = new URLSearchParams();
-    if (activeFolderId) params.set('folderId', activeFolderId);
-    else params.set('unfiled', '1');
-    if (searchQuery) params.set('q', searchQuery);
-
-    // Add advanced search filters
-    const kind = searchParams.get('kind');
-    const accountId = searchParams.get('accountId');
-    const minSize = searchParams.get('minSize');
-    const maxSize = searchParams.get('maxSize');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-
-    if (kind) params.set('kind', kind);
-    if (accountId) params.set('accountId', accountId);
-    if (minSize) params.set('minSize', minSize);
-    if (maxSize) params.set('maxSize', maxSize);
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
-
-    const query = params.toString();
-    const path = query ? `/files?${query}` : '/files';
-    const data = await apiFetch<{ files: BackendFile[] }>(path);
-    setFiles(data.files.map(mapFile));
+  function closeFileMenu() {
+    setContextMenu({ x: 0, y: 0, file: null });
   }
 
-  async function loadFolders() {
-    const visiblePath = activeFolderId ? `/folders?parentId=${activeFolderId}` : '/folders';
-    const [visibleData, allData] = await Promise.all([
-      apiFetch<{ folders: BackendFolder[] }>(visiblePath),
-      apiFetch<{ folders: BackendFolder[] }>('/folders?all=1'),
-    ]);
-    setFolders(visibleData.folders.map(mapFolder));
-    setAllFolders(allData.folders.map(mapFolder));
+  function closeFolderMenu() {
+    setFolderContextMenu({ x: 0, y: 0, folder: null });
   }
 
-  async function loadAll() {
-    await Promise.all([loadFiles(), loadFolders()]);
-  }
-
-  async function handleDropItem(fileId: string, targetFolderId: string) {
-    const fileIds = selectedFileIds.has(fileId) ? Array.from(selectedFileIds) : [fileId];
-    setLoading(true);
-    try {
-      await apiFetch('/files/batch', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileIds, folderId: targetFolderId }),
-      });
-      toast.success(`Successfully moved ${fileIds.length} item(s).`);
-      loadAll().catch(() => undefined);
-      setSelectedFileIds(new Set());
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to move items');
-    } finally {
-      setLoading(false);
-    }
+  function closeEmptyMenu() {
+    setEmptyContextMenu({ x: 0, y: 0, open: false });
   }
 
   useEffect(() => {
     loadAll().catch((error) =>
       toast.error(error instanceof Error ? error.message : 'Failed to load files'),
     );
-    setSelectedFileIds(new Set());
+    selection.setSelectedFileIds(new Set());
   }, [activeFolderId, searchQuery]);
 
   useEffect(() => {
-    async function loadConnectedAccounts() {
-      try {
-        const data = await apiFetch<{ accounts: ConnectedAccount[] }>('/connected-accounts');
-        setConnectedAccounts(data.accounts || []);
-      } catch (error) {
-        console.error('Failed to load connected accounts:', error);
-      }
-    }
-    loadConnectedAccounts();
-  }, []);
-
-  useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setContextMenu({ x: 0, y: 0, file: null });
-      if (event.key === 'Escape') setFolderContextMenu({ x: 0, y: 0, folder: null });
-      if (event.key === 'Escape') setEmptyContextMenu({ x: 0, y: 0, open: false });
+      if (event.key === 'Escape') {
+        closeFileMenu();
+        closeFolderMenu();
+        closeEmptyMenu();
+      }
       if (event.ctrlKey && event.key.toLowerCase() === 'x' && activeFolderForMenu) {
         event.preventDefault();
-        cutSelectedFolder(activeFolderForMenu);
+        clipboard.cut(activeFolderForMenu);
+        closeFolderMenu();
       }
-      if (event.ctrlKey && event.key.toLowerCase() === 'v' && cutFolder) {
+      if (event.ctrlKey && event.key.toLowerCase() === 'v' && clipboard.cutFolder) {
         event.preventDefault();
-        pasteFolder().catch((error) =>
-          toast.error(error instanceof Error ? error.message : 'Failed to paste folder'),
-        );
+        pasteFolder();
       }
     }
 
@@ -360,26 +145,36 @@ export function AllFilesPage() {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('ithaca:open-move-modal', onOpenMoveShortcut);
     };
-  }, [activeFolderForMenu, cutFolder, activeFolderId]);
+  }, [activeFolderForMenu, clipboard.cutFolder, activeFolderId]);
 
-  useEffect(() => {
-    if (!previewOpen || !activeFile?.mimeType?.startsWith('video/') || !previewVideoRef.current)
-      return undefined;
-    let disposed = false;
-    let player: { destroy: () => void } | null = null;
+  function pasteFolder() {
+    clipboard
+      .paste(activeFolderId ?? null)
+      .catch((error) =>
+        toast.error(error instanceof Error ? error.message : 'Failed to paste folder'),
+      );
+  }
 
-    ensurePlyr()
-      .then(() => {
-        if (disposed || !previewVideoRef.current) return;
-        player = createPlyr(previewVideoRef.current);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      disposed = true;
-      player?.destroy();
-    };
-  }, [previewOpen, activeFile?.mimeType, previewUrl]);
+  async function handleDropItem(fileId: string, targetFolderId: string) {
+    const fileIds = selection.selectedFileIds.has(fileId)
+      ? Array.from(selection.selectedFileIds)
+      : [fileId];
+    setLoading(true);
+    try {
+      await apiFetch('/files/batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileIds, folderId: targetFolderId }),
+      });
+      toast.success(`Successfully moved ${fileIds.length} item(s).`);
+      loadAll().catch(() => undefined);
+      selection.setSelectedFileIds(new Set());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to move items');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function createFolder(event: FormEvent) {
     event.preventDefault();
@@ -481,32 +276,6 @@ export function AllFilesPage() {
     setContextMenu({ x: event.clientX, y: event.clientY, file });
   }
 
-  function toggleFileSelection(file: FileItem) {
-    if (!file.id) return;
-    setSelectedFileIds((current) => {
-      const next = new Set(current);
-      if (next.has(file.id!)) next.delete(file.id!);
-      else next.add(file.id!);
-      return next;
-    });
-  }
-
-  function toggleAllVisibleFiles() {
-    const visibleIds = files.map((file) => file.id).filter(Boolean) as string[];
-    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedFileIds.has(id));
-    setSelectedFileIds(allSelected ? new Set() : new Set(visibleIds));
-  }
-
-  function clearSelection() {
-    setSelectedFileIds(new Set());
-    setSelectMode(false);
-  }
-
-  function toggleSelectMode() {
-    setSelectMode((current) => !current);
-    setSelectedFileIds(new Set());
-  }
-
   function openFolderMenu(event: MouseEvent<HTMLElement>, folder: FolderItem) {
     event.preventDefault();
     event.stopPropagation();
@@ -534,65 +303,19 @@ export function AllFilesPage() {
     setSearchParams(searchQuery ? { q: searchQuery } : {});
   }
 
-  async function viewFile() {
-    if (!activeFile?.id) return;
-    setPreviewUrl('');
-    setPreviewError('');
-    setPreviewLoading(true);
-    setPreviewOpen(true);
-    setContextMenu({ x: 0, y: 0, file: null });
-    try {
-      const data = await apiFetch<{ path?: string; url: string }>(
-        `/files/${activeFile.id}/preview-token`,
-        { method: 'POST' },
-      );
-      const previewPath = data.path ?? new URL(data.url).pathname;
-      setPreviewUrl(`${API_URL}${previewPath}`);
-    } catch (error) {
-      setPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
-    } finally {
-      setPreviewLoading(false);
-    }
-  }
-
   async function downloadFile() {
     if (!activeFile?.id) return;
-    const response = await fetch(`${API_URL}/files/${activeFile.id}/download`, {
-      headers: { Authorization: `Bearer ${getAccessToken()}` },
-    });
-    if (!response.ok) throw new Error('Download failed');
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = activeFile.name;
-    link.click();
-    URL.revokeObjectURL(url);
-    setContextMenu({ x: 0, y: 0, file: null });
+    await downloadFileById(activeFile.id, activeFile.name);
+    closeFileMenu();
   }
 
   async function downloadBatchAsZip() {
-    const selectedIds = [...selectedFileIds];
+    const selectedIds = [...selection.selectedFileIds];
     if (selectedIds.length === 0) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/files/batch-download`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAccessToken()}`,
-        },
-        body: JSON.stringify({ fileIds: selectedIds }),
-      });
-      if (!response.ok) throw new Error('Failed to download ZIP file');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'ithaca-download.zip';
-      link.click();
-      URL.revokeObjectURL(url);
-      clearSelection();
+      await downloadFilesAsZip(selectedIds);
+      selection.clear();
       toast.success('Batch download complete.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Batch download failed');
@@ -614,7 +337,7 @@ export function AllFilesPage() {
 
   async function moveFile(event: FormEvent) {
     event.preventDefault();
-    const selectedIds = [...selectedFileIds];
+    const selectedIds = [...selection.selectedFileIds];
     if (selectedIds.length > 0)
       await apiFetch('/files/batch', {
         method: 'PATCH',
@@ -628,12 +351,12 @@ export function AllFilesPage() {
     else return;
     setMoveOpen(false);
     setSelectedFolderId('');
-    clearSelection();
+    selection.clear();
     await loadFiles();
   }
 
   async function deleteFile() {
-    const selectedIds = [...selectedFileIds];
+    const selectedIds = [...selection.selectedFileIds];
     if (selectedIds.length > 0)
       await apiFetch('/files/batch', {
         method: 'DELETE',
@@ -642,58 +365,9 @@ export function AllFilesPage() {
     else if (activeFile?.id) await apiFetch(`/files/${activeFile.id}`, { method: 'DELETE' });
     else return;
     setDeleteOpen(false);
-    clearSelection();
+    selection.clear();
     await loadFiles();
     window.dispatchEvent(new Event('ithaca:storage-changed'));
-  }
-
-  async function shareFile() {
-    if (!activeFile?.id) return;
-    const data = await apiFetch<{ url: string }>(`/files/${activeFile.id}/share`, {
-      method: 'POST',
-    });
-    setShareUrl(data.url);
-    setCopiedShareLink(false);
-    setGdrivePublicUrl('');
-    setMakingPublic(false);
-    setShareOpen(true);
-    setContextMenu({ x: 0, y: 0, file: null });
-  }
-
-  async function copyShareLinkDirect() {
-    if (!activeFile?.id) return;
-    try {
-      const data = await apiFetch<{ url: string | null }>(`/files/${activeFile.id}/view-url`);
-      if (data.url) {
-        await navigator.clipboard.writeText(data.url);
-        toast.success('Google Drive link copied to clipboard!');
-      } else {
-        const shareData = await apiFetch<{ url: string }>(`/files/${activeFile.id}/share`, {
-          method: 'POST',
-        });
-        await navigator.clipboard.writeText(shareData.url);
-        toast.success('Share link copied to clipboard!');
-      }
-    } catch (err: any) {
-      toast.error('Failed to copy link: ' + (err.message || err));
-    }
-    setContextMenu({ x: 0, y: 0, file: null });
-  }
-
-  async function inviteToFile() {
-    if (!activeFile?.id) return;
-    setInviteTargetType('file');
-    setInviteTargetId(activeFile.id);
-    setInviteOpen(true);
-    setContextMenu({ x: 0, y: 0, file: null });
-  }
-
-  async function inviteToFolder() {
-    if (!activeFolderForMenu?.id) return;
-    setInviteTargetType('folder');
-    setInviteTargetId(activeFolderForMenu.id);
-    setInviteOpen(true);
-    setFolderContextMenu({ x: 0, y: 0, folder: null });
   }
 
   async function copyFolderLink() {
@@ -704,40 +378,7 @@ export function AllFilesPage() {
     }
     await navigator.clipboard.writeText(url);
     toast.success('Folder link copied to clipboard!');
-    setFolderContextMenu({ x: 0, y: 0, folder: null });
-  }
-
-  async function sendInvite(event: FormEvent) {
-    event.preventDefault();
-    if (!inviteTargetId) return;
-    setInviting(true);
-    setInviteMessage('');
-    try {
-      await apiFetch('/invites', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: inviteEmail,
-          role: inviteRole,
-          targetType: inviteTargetType,
-          targetId: inviteTargetId,
-        }),
-      });
-      setInviteEmail('');
-      setInviteRole('viewer');
-      setInviteMessage('Invite saved. Member will appear in Shared.');
-      window.dispatchEvent(new Event('ithaca:invites-changed'));
-    } catch (error) {
-      setInviteMessage(error instanceof Error ? error.message : 'Failed to send invite');
-    } finally {
-      setInviting(false);
-    }
-  }
-
-  async function copyShareLink() {
-    await navigator.clipboard.writeText(shareUrl);
-    setCopiedShareLink(true);
-    toast.success('Share link copied to clipboard.');
-    window.setTimeout(() => setCopiedShareLink(false), 1600);
+    closeFolderMenu();
   }
 
   async function renameFolder(event: FormEvent) {
@@ -762,184 +403,56 @@ export function AllFilesPage() {
     await loadFolders();
   }
 
-  function cutSelectedFolder(folder: FolderItem | null) {
-    if (!folder?.id) return;
-    setCutFolder(folder);
-    setFolderContextMenu({ x: 0, y: 0, folder: null });
-    toast.success(`Folder "${folder.name}" ready to move. Open target folder and press Ctrl+V.`);
-  }
-
-  async function pasteFolder() {
-    if (!cutFolder?.id) return;
-    await apiFetch(`/folders/${cutFolder.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ parentId: activeFolderId ?? null }),
-    });
-    toast.success(`Folder "${cutFolder.name}" moved.`);
-    setCutFolder(null);
-    await loadFolders();
-  }
-
-  function closePreview() {
-    setPreviewUrl('');
-    setPreviewError('');
-    setPreviewLoading(false);
-    setPreviewOpen(false);
-  }
-
-  useEffect(() => {
-    function handleUploadCompleted() {
-      loadAll().catch(() => undefined);
-    }
-    window.addEventListener('ithaca:upload-completed', handleUploadCompleted);
-    return () => window.removeEventListener('ithaca:upload-completed', handleUploadCompleted);
-  }, [activeFolderId]);
-
-  const activeFolder = allFolders.find((folder) => folder.id === activeFolderId);
-  const folderBreadcrumbs = (() => {
-    if (!activeFolder) return [];
-    const foldersById = new Map(allFolders.map((folder) => [folder.id, folder]));
-    const path: FolderItem[] = [];
-    const visited = new Set<string>();
-    let current: FolderItem | undefined = activeFolder;
-    while (current?.id && !visited.has(current.id)) {
-      path.unshift(current);
-      visited.add(current.id);
-      current = current.parentId ? foldersById.get(current.parentId) : undefined;
-    }
-    return path;
-  })();
-  const allVisibleSelected =
-    files.length > 0 && files.every((file) => file.id && selectedFileIds.has(file.id));
-  const activePreviewKind = getPreviewKind(activeFile?.mimeType);
+  const emptyMessage = searchQuery
+    ? `No files found for "${searchQuery}".`
+    : activeFolder
+      ? 'No files or folders in this folder yet.'
+      : 'No uploaded files yet. Connect Google Drive in Settings, then upload a file.';
 
   return (
     <>
       <div onContextMenu={openEmptyContextMenu} className="min-h-[620px] w-full min-w-0">
         <PageHeader
           title={
-            activeFolder ? (
-              <span className="block min-w-0 truncate">
-                <button className="text-primary hover:underline" onClick={closeFolder}>
-                  All Files
-                </button>
-                {folderBreadcrumbs.map((folder, index) => (
-                  <span key={folder.id}>
-                    <span className="text-muted-foreground"> / </span>
-                    {index === folderBreadcrumbs.length - 1 ? (
-                      <span>{folder.name}</span>
-                    ) : (
-                      <button
-                        className="text-primary hover:underline"
-                        onClick={() => folder.id && openFolderById(folder.id)}
-                      >
-                        {folder.name}
-                      </button>
-                    )}
-                  </span>
-                ))}
-              </span>
-            ) : (
-              'All Files'
-            )
+            <FolderBreadcrumbs
+              path={folderBreadcrumbs}
+              onRootClick={closeFolder}
+              onFolderClick={openFolderById}
+            />
           }
         />
-        <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" variant="outline" className="hidden sm:inline-flex">
-              <Archive className="h-4 w-4" />
-              Recents
-            </Button>
-            <Button size="sm" variant="outline" className="hidden sm:inline-flex">
-              <Star className="h-4 w-4" />
-              Starred
-            </Button>
-          </div>
-          {selectedFileIds.size > 0 ? (
-            <div className="flex w-full flex-col gap-3 rounded-sm border border-orange-500/20 bg-orange-500/10 p-3 sm:w-auto sm:flex-row sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
-              <span className="text-sm font-extrabold text-foreground">
-                {selectedFileIds.size} selected
-              </span>
-              <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-3">
-                <Button className="w-full sm:w-auto" variant="outline" onClick={downloadBatchAsZip}>
-                  <Download className="h-4 w-4" />
-                  ZIP
-                </Button>
-                <Button
-                  className="w-full sm:w-auto"
-                  variant="outline"
-                  onClick={() => setMoveOpen(true)}
-                >
-                  <FolderInput className="h-4 w-4" />
-                  Move
-                </Button>
-                <Button
-                  className="w-full sm:w-auto"
-                  variant="destructive"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-                <Button className="w-full sm:w-auto" variant="outline" onClick={clearSelection}>
-                  Clear
-                </Button>
-              </div>
-            </div>
-          ) : selectMode ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Select files to continue</span>
-              <Button size="sm" variant="outline" onClick={toggleSelectMode}>
-                Cancel
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" variant="outline" onClick={toggleSelectMode}>
-                <CheckSquare className="h-3.5 w-3.5" />
-                Select
-              </Button>
-              <Button size="sm" onClick={() => setUploadOpen(true)}>
-                <Upload className="h-3.5 w-3.5" />
-                Upload
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setFolderOpen(true)}>
-                <FolderPlus className="h-3.5 w-3.5" />
-                New Folder
-              </Button>
-              <Button size="sm" variant="outline" disabled={syncingDrive} onClick={syncGoogleDrive}>
-                <RefreshCw className={syncingDrive ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
-                {syncingDrive ? 'Syncing...' : 'Sync'}
-              </Button>
-            </div>
-          )}
-        </div>
-        {cutFolder ? (
+        <FileToolbar
+          selectedCount={selection.selectedFileIds.size}
+          selectMode={selection.selectMode}
+          syncing={syncingDrive}
+          onToggleSelectMode={selection.toggleSelectMode}
+          onClearSelection={selection.clear}
+          onDownloadZip={downloadBatchAsZip}
+          onMoveSelected={() => setMoveOpen(true)}
+          onDeleteSelected={() => setDeleteOpen(true)}
+          onUpload={() => setUploadOpen(true)}
+          onNewFolder={() => setFolderOpen(true)}
+          onSync={syncGoogleDrive}
+        />
+        {clipboard.cutFolder ? (
           <p className="mt-3 rounded-sm bg-amber-50 p-3 text-sm font-semibold text-amber-700">
             <ClipboardPaste className="mr-2 inline h-4 w-4" />
-            Cut folder: {cutFolder.name}. Press Ctrl+V or right-click empty area to paste here.
+            Cut folder: {clipboard.cutFolder.name}. Press Ctrl+V or right-click empty area to paste
+            here.
           </p>
         ) : null}
         {files.length === 0 && folders.length === 0 ? (
-          <Card className="mt-3 p-5 bg-card border border-border dark:bg-transparent dark:border-0 dark:p-0 dark:shadow-none">
-            <p className="text-sm text-muted-foreground">
-              {searchQuery
-                ? `No files found for "${searchQuery}".`
-                : activeFolder
-                  ? 'No files or folders in this folder yet.'
-                  : 'No uploaded files yet. Connect Google Drive in Settings, then upload a file.'}
-            </p>
-          </Card>
+          <EmptyState className="mt-3 dark:p-0" message={emptyMessage} />
         ) : (
           <Card className="mt-3 min-w-0 overflow-x-auto p-0 bg-card dark:bg-transparent dark:shadow-none">
             <FileTable
               files={files}
               folders={folders}
-              selectable={selectMode}
-              selectedFileIds={selectedFileIds}
-              allSelected={allVisibleSelected}
-              onToggleFile={toggleFileSelection}
-              onToggleAll={toggleAllVisibleFiles}
+              selectable={selection.selectMode}
+              selectedFileIds={selection.selectedFileIds}
+              allSelected={selection.allVisibleSelected}
+              onToggleFile={selection.toggleFile}
+              onToggleAll={selection.toggleAllVisible}
               onFileContextMenu={openContext}
               onFolderOpen={openFolder}
               onFolderMenu={openFolderMenu}
@@ -952,497 +465,207 @@ export function AllFilesPage() {
         x={emptyContextMenu.x}
         y={emptyContextMenu.y}
         open={emptyContextMenu.open}
-        canPasteFolder={Boolean(cutFolder)}
-        onClose={() => setEmptyContextMenu({ x: 0, y: 0, open: false })}
+        canPasteFolder={Boolean(clipboard.cutFolder)}
+        onClose={closeEmptyMenu}
         onUpload={() => {
           setUploadOpen(true);
-          setEmptyContextMenu({ x: 0, y: 0, open: false });
+          closeEmptyMenu();
         }}
         onCreateFolder={() => {
           setFolderOpen(true);
-          setEmptyContextMenu({ x: 0, y: 0, open: false });
+          closeEmptyMenu();
         }}
         onPasteFolder={() => {
-          pasteFolder().catch((error) =>
-            toast.error(error instanceof Error ? error.message : 'Failed to paste folder'),
-          );
-          setEmptyContextMenu({ x: 0, y: 0, open: false });
+          pasteFolder();
+          closeEmptyMenu();
         }}
       />
       <FileContextMenu
         x={contextMenu.x}
         y={contextMenu.y}
         file={contextMenu.file}
-        onClose={() => setContextMenu({ x: 0, y: 0, file: null })}
-        onView={viewFile}
+        onClose={closeFileMenu}
+        onView={() => {
+          preview.preview(activeFile);
+          closeFileMenu();
+        }}
         onDownload={downloadFile}
         onRename={() => {
           setRenameValue(activeFile?.name ?? '');
           setRenameOpen(true);
-          setContextMenu({ x: 0, y: 0, file: null });
+          closeFileMenu();
         }}
         onMove={() => {
           setMoveOpen(true);
-          setContextMenu({ x: 0, y: 0, file: null });
+          closeFileMenu();
         }}
         onDetails={() => {
           setDetailOpen(true);
-          setContextMenu({ x: 0, y: 0, file: null });
+          closeFileMenu();
         }}
-        onShare={shareFile}
-        onCopyLink={copyShareLinkDirect}
-        onInvite={inviteToFile}
+        onShare={() => {
+          share.share(activeFile);
+          closeFileMenu();
+        }}
+        onCopyLink={() => {
+          share.copyDirectLink(activeFile);
+          closeFileMenu();
+        }}
+        onInvite={() => {
+          invite.invite('file', activeFile?.id);
+          closeFileMenu();
+        }}
         onDelete={() => {
           setDeleteOpen(true);
-          setContextMenu({ x: 0, y: 0, file: null });
+          closeFileMenu();
         }}
       />
       <FolderContextMenu
         x={folderContextMenu.x}
         y={folderContextMenu.y}
         folder={folderContextMenu.folder}
-        onClose={() => setFolderContextMenu({ x: 0, y: 0, folder: null })}
-        onCut={() => cutSelectedFolder(activeFolderForMenu)}
+        onClose={closeFolderMenu}
+        onCut={() => {
+          clipboard.cut(activeFolderForMenu);
+          closeFolderMenu();
+        }}
         onRename={() => {
           setFolderRenameValue(activeFolderForMenu?.name ?? '');
           setFolderRenameColor(normalizeFolderColor(activeFolderForMenu?.color));
           setFolderRenameIconUrl(activeFolderForMenu?.iconUrl ?? defaultFolderIconUrl);
           setFolderRenameOpen(true);
-          setFolderContextMenu({ x: 0, y: 0, folder: null });
+          closeFolderMenu();
         }}
-        onInvite={inviteToFolder}
+        onInvite={() => {
+          invite.invite('folder', activeFolderForMenu?.id);
+          closeFolderMenu();
+        }}
         onCopyLink={copyFolderLink}
         onDelete={() => {
           setFolderDeleteOpen(true);
-          setFolderContextMenu({ x: 0, y: 0, folder: null });
+          closeFolderMenu();
         }}
       />
       <FileDetailsDrawer open={detailOpen} file={activeFile} onClose={() => setDetailOpen(false)} />
 
-      <DummyModal
+      <UploadFileDialog
         open={uploadOpen}
-        title="Upload File"
-        description="Stream file directly to selected Google Drive account."
+        files={selectedFiles}
+        folders={allFolders}
+        connectedAccounts={connectedAccounts}
+        activeFolder={activeFolder}
+        targetAccountId={selectedTargetAccountId}
+        targetFolderId={selectedFolderId}
+        dragging={isUploadDragging}
+        submitting={loading}
         onClose={() => setUploadOpen(false)}
-      >
-        <form onSubmit={uploadFile} className="grid gap-4">
-          <label
-            onDragEnter={handleUploadDrag}
-            onDragOver={handleUploadDrag}
-            onDragLeave={handleUploadDrag}
-            onDrop={handleUploadDrag}
-            className={
-              isUploadDragging
-                ? 'grid cursor-pointer gap-3 rounded-sm border-2 border-dashed border-ring bg-primary/10 p-4 text-center transition sm:p-6'
-                : 'grid cursor-pointer gap-3 rounded-sm border-2 border-dashed border-border bg-muted p-4 text-center transition hover:border-primary sm:p-6'
-            }
-          >
-            <Upload
-              className={
-                isUploadDragging
-                  ? 'mx-auto h-8 w-8 text-primary'
-                  : 'mx-auto h-8 w-8 text-muted-foreground'
-              }
-            />
-            <span className="text-sm font-extrabold text-foreground">
-              Drop file here or click to browse
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Metadata is sent before the file so upload can stream directly to Google Drive.
-            </span>
-            <Input
-              type="file"
-              className="sr-only"
-              multiple
-              onChange={(event) => selectUploadFiles(event.target.files)}
-              required={selectedFiles.length === 0}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold">
-            Target Storage Account
-            <Combobox
-              className="h-7"
-              value={selectedTargetAccountId}
-              onValueChange={(id) => setSelectedTargetAccountId(id)}
-              options={[
-                { value: '', label: 'Automatic (Default)' },
-                ...connectedAccounts.map((account) => ({
-                  value: account.id,
-                  label: `${account.email || account.displayName || account.id} (${account.provider === 's3' ? 'S3' : 'Google Drive'})`,
-                })),
-              ]}
-            />
-          </label>
-          {activeFolder ? (
-            <p className="rounded-sm bg-muted p-3 text-sm text-muted-foreground">
-              Uploading to: <b>{activeFolder.name}</b>
-            </p>
-          ) : (
-            <label className="grid gap-2 text-sm font-semibold">
-              Virtual Folder
-              <Combobox
-                className="h-7"
-                value={selectedFolderId}
-                onValueChange={(id) => setSelectedFolderId(id)}
-                options={[
-                  { value: '', label: 'No folder' },
-                  ...allFolders.map((folder) => ({ value: String(folder.id), label: folder.name })),
-                ]}
-              />
-            </label>
-          )}
-          {selectedFiles.length > 0 ? (
-            <div className="grid max-h-56 gap-2 overflow-y-auto rounded-sm bg-muted p-3 text-sm text-muted-foreground">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-bold text-foreground">{selectedFiles.length} selected</span>
-                <span className="shrink-0">
-                  {formatBytes(selectedFiles.reduce((total, file) => total + file.size, 0))}
-                </span>
-              </div>
-              {selectedFiles.map((file, index) => (
-                <div
-                  key={`${file.name}-${file.size}-${index}`}
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-sm bg-card px-3 py-2"
-                >
-                  <span className="min-w-0 flex-1 truncate" title={file.name}>
-                    {file.name}
-                  </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatBytes(file.size)}
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeUploadFile(index)}
-                    aria-label={`Remove ${file.name}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          <div className="grid gap-3 sm:flex sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setUploadOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading || selectedFiles.length === 0}>
-              {loading
-                ? 'Uploading...'
-                : `Upload${selectedFiles.length > 1 ? ` ${selectedFiles.length} files` : ''}`}
-            </Button>
-          </div>
-        </form>
-      </DummyModal>
-      <DummyModal
+        onSubmit={uploadFile}
+        onSelectFiles={selectUploadFiles}
+        onRemoveFile={removeUploadFile}
+        onDrag={handleUploadDrag}
+        onTargetAccountChange={setSelectedTargetAccountId}
+        onTargetFolderChange={setSelectedFolderId}
+      />
+      <FolderFormDialog
         open={folderOpen}
-        title="New Folder"
-        description="Create a virtual folder for organizing files."
+        mode="create"
+        name={folderName}
+        color={folderColor}
+        iconUrl={folderIconUrl}
+        onNameChange={setFolderName}
+        onColorChange={setFolderColor}
+        onIconChange={setFolderIconUrl}
+        onSubmit={createFolder}
         onClose={() => setFolderOpen(false)}
-      >
-        <form onSubmit={createFolder} className="grid gap-4">
-          <label className="grid gap-2 text-sm font-semibold">
-            Folder Name
-            <Input
-              value={folderName}
-              onChange={(event) => setFolderName(event.target.value)}
-              placeholder="Project Assets"
-              required
-            />
-          </label>
-          <FolderAppearanceFields
-            color={folderColor}
-            iconUrl={folderIconUrl}
-            onColorChange={setFolderColor}
-            onIconChange={setFolderIconUrl}
-          />
-          <div className="grid gap-3 pt-2 sm:flex sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setFolderOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Create Folder</Button>
-          </div>
-        </form>
-      </DummyModal>
-      <DummyModal
+      />
+      <FolderFormDialog
+        open={folderRenameOpen}
+        mode="rename"
+        description={activeFolderForMenu?.name ?? ''}
+        name={folderRenameValue}
+        color={folderRenameColor}
+        iconUrl={folderRenameIconUrl}
+        onNameChange={setFolderRenameValue}
+        onColorChange={setFolderRenameColor}
+        onIconChange={setFolderRenameIconUrl}
+        onSubmit={renameFolder}
+        onClose={() => setFolderRenameOpen(false)}
+      />
+      <RenameFileDialog
         open={renameOpen}
-        title="Rename File"
-        description={activeFile?.name ?? ''}
+        fileName={activeFile?.name ?? ''}
+        value={renameValue}
+        onChange={setRenameValue}
+        onSubmit={renameFile}
         onClose={() => setRenameOpen(false)}
-      >
-        <form onSubmit={renameFile} className="grid gap-4">
-          <Input
-            value={renameValue}
-            onChange={(event) => setRenameValue(event.target.value)}
-            required
-          />
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => setRenameOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Rename</Button>
-          </div>
-        </form>
-      </DummyModal>
-      <DummyModal
+      />
+      <MoveToFolderDialog
         open={moveOpen}
-        title="Move to Folder"
         description={
-          selectedFileIds.size > 0 ? `Move ${selectedFileIds.size} files` : (activeFile?.name ?? '')
+          selection.selectedFileIds.size > 0
+            ? `Move ${selection.selectedFileIds.size} files`
+            : (activeFile?.name ?? '')
         }
+        folders={allFolders}
+        selectedFolderId={selectedFolderId}
+        onSelectFolder={setSelectedFolderId}
+        onSubmit={moveFile}
         onClose={() => setMoveOpen(false)}
-      >
-        <form onSubmit={moveFile} className="grid gap-4">
-          <Combobox
-            className="h-7"
-            value={selectedFolderId}
-            onValueChange={(id) => setSelectedFolderId(id)}
-            options={[
-              { value: '', label: 'No folder' },
-              ...allFolders.map((folder) => ({ value: String(folder.id), label: folder.name })),
-            ]}
-          />
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => setMoveOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Move</Button>
-          </div>
-        </form>
-      </DummyModal>
-      <DummyModal
+      />
+      <DeleteConfirmDialog
         open={deleteOpen}
-        title={selectedFileIds.size > 0 ? 'Delete Files' : 'Delete File'}
+        title={selection.selectedFileIds.size > 0 ? 'Delete Files' : 'Delete File'}
         description={
-          selectedFileIds.size > 0
-            ? `Delete ${selectedFileIds.size} files from Google Drive?`
+          selection.selectedFileIds.size > 0
+            ? `Delete ${selection.selectedFileIds.size} files from Google Drive?`
             : `Delete ${activeFile?.name ?? 'file'} from Google Drive?`
         }
+        onConfirm={deleteFile}
         onClose={() => setDeleteOpen(false)}
-      >
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={deleteFile}>
-            Delete
-          </Button>
-        </div>
-      </DummyModal>
-      <DummyModal
-        open={shareOpen}
-        title="Share Link"
-        description={activeFile?.name ?? ''}
-        onClose={() => setShareOpen(false)}
-      >
-        <div className="grid gap-4">
-          <div>
-            <label className="text-xs font-bold text-muted-foreground block mb-1">
-              Ithaca Public Share Link (No GDrive login required)
-            </label>
-            <Input value={shareUrl} readOnly />
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShareOpen(false)}>
-              Close
-            </Button>
-            <Button onClick={copyShareLink}>
-              {copiedShareLink ? <CheckCircle className="h-4 w-4" /> : null}
-              {copiedShareLink ? 'Copied!' : 'Copy Link'}
-            </Button>
-          </div>
-
-          {activeFile?.accountProvider === 'google_drive' && (
-            <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 grid gap-3">
-              <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Google Drive Direct Link (Public Access)
-                </label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Configure this file to be publicly accessible on Google Drive so external tools
-                  can edit/download it.
-                </p>
-              </div>
-              {gdrivePublicUrl ? (
-                <div className="grid gap-2">
-                  <Input value={gdrivePublicUrl} readOnly />
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  disabled={makingPublic}
-                  onClick={async () => {
-                    if (!activeFile?.id) return;
-                    setMakingPublic(true);
-                    try {
-                      const res = await apiFetch<{ url: string }>(
-                        '/files/' + activeFile.id + '/public-permission',
-                        { method: 'POST' },
-                      );
-                      setGdrivePublicUrl(res.url);
-                      await navigator.clipboard.writeText(res.url);
-                      toast.success('Google Drive public link generated and copied to clipboard!');
-                    } catch (err: any) {
-                      toast.error(
-                        'Failed to update Google Drive permission: ' + (err.message || err),
-                      );
-                    } finally {
-                      setMakingPublic(false);
-                    }
-                  }}
-                  className="w-full text-primary bg-primary/10 border-primary/20 dark:text-primary dark:bg-blue-950/30 dark:border-blue-900/50"
-                >
-                  {makingPublic ? 'Making Public...' : 'Make Public & Copy GDrive Link'}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </DummyModal>
-      <DummyModal
-        open={folderRenameOpen}
-        title="Rename Folder"
-        description={activeFolderForMenu?.name ?? ''}
-        onClose={() => setFolderRenameOpen(false)}
-      >
-        <form onSubmit={renameFolder} className="grid gap-4">
-          <Input
-            value={folderRenameValue}
-            onChange={(event) => setFolderRenameValue(event.target.value)}
-            required
-          />
-          <FolderAppearanceFields
-            color={folderRenameColor}
-            iconUrl={folderRenameIconUrl}
-            onColorChange={setFolderRenameColor}
-            onIconChange={setFolderRenameIconUrl}
-          />
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => setFolderRenameOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Rename</Button>
-          </div>
-        </form>
-      </DummyModal>
-      <DummyModal
+      />
+      <DeleteConfirmDialog
         open={folderDeleteOpen}
         title="Delete Folder"
         description={`Delete virtual folder ${activeFolderForMenu?.name ?? ''}? Files inside will remain uploaded.`}
+        onConfirm={deleteFolder}
         onClose={() => setFolderDeleteOpen(false)}
-      >
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setFolderDeleteOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={deleteFolder}>
-            Delete
-          </Button>
-        </div>
-      </DummyModal>
-      <DummyModal
-        open={inviteOpen}
-        title="Invite Member"
-        description={`Share ${inviteTargetType === 'file' ? (activeFile?.name ?? 'file') : (activeFolderForMenu?.name ?? 'folder')} with a team member.`}
-        onClose={() => setInviteOpen(false)}
-      >
-        <form onSubmit={sendInvite} className="grid gap-4">
-          <label className="grid gap-2 text-sm font-semibold">
-            Email Address
-            <Input
-              type="email"
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="member@example.com"
-              required
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold">
-            Role
-            <Combobox
-              className="h-7"
-              searchable={false}
-              value={inviteRole}
-              onValueChange={(role) => setInviteRole(role)}
-              options={[
-                { value: 'viewer', label: 'Can view' },
-                { value: 'editor', label: 'Can edit' },
-              ]}
-            />
-          </label>
-          {inviteMessage ? (
-            <p className="rounded-sm bg-primary/10 p-3 text-sm font-semibold text-primary">
-              {inviteMessage}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={inviting}>
-              {inviting ? 'Sending...' : 'Send Invite'}
-            </Button>
-          </div>
-        </form>
-      </DummyModal>
-      <DummyModal
-        open={previewOpen}
-        title="File Preview"
-        description={activeFile?.name ?? ''}
-        onClose={closePreview}
-        className="overflow-hidden sm:max-w-[95vw] xl:max-w-[1400px]"
-      >
-        <div className="flex h-[72dvh] w-full items-center justify-center overflow-hidden rounded-sm border border-border bg-muted sm:h-[80vh]">
-          {previewLoading ? (
-            <div className="p-6 text-center text-sm font-semibold text-muted-foreground">
-              Loading preview...
-            </div>
-          ) : null}
-          {previewError ? (
-            <div className="p-6 text-center text-sm text-destructive">{previewError}</div>
-          ) : null}
-          {!previewLoading && !previewError && activePreviewKind === 'image' && previewUrl ? (
-            <img
-              src={previewUrl}
-              alt={activeFile?.name ?? 'File preview'}
-              className="max-h-full max-w-full object-contain"
-              onError={() => setPreviewError('Failed to load preview.')}
-            />
-          ) : null}
-          {!previewLoading && !previewError && activePreviewKind === 'video' && previewUrl ? (
-            <div className="shared-video-shell">
-              <video
-                ref={previewVideoRef}
-                controls
-                playsInline
-                preload="metadata"
-                onError={() => setPreviewError('Failed to load preview.')}
-              >
-                <source src={previewUrl} type={activeFile?.mimeType} />
-              </video>
-            </div>
-          ) : null}
-          {!previewLoading && !previewError && activePreviewKind === 'document' && previewUrl ? (
-            <iframe
-              src={previewUrl}
-              title={activeFile?.name ?? 'File preview'}
-              className="h-full w-full border-0 bg-white"
-            />
-          ) : null}
-          {!previewLoading && !previewError && activePreviewKind === 'office' && previewUrl ? (
-            <iframe
-              src={officeViewerUrl(previewUrl)}
-              title={activeFile?.name ?? 'File preview'}
-              className="h-full w-full border-0 bg-white"
-            />
-          ) : null}
-          {!previewLoading && !previewError && !activePreviewKind ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              Preview not available for this file type. Use Download instead.
-            </div>
-          ) : null}
-        </div>
-      </DummyModal>
+      />
+      <ShareLinkDialog
+        open={share.open}
+        file={activeFile}
+        shareUrl={share.shareUrl}
+        copied={share.copied}
+        gdrivePublicUrl={share.gdrivePublicUrl}
+        makingPublic={share.makingPublic}
+        onCopy={share.copy}
+        onMakePublic={() => share.makePublic(activeFile)}
+        onClose={() => share.setOpen(false)}
+      />
+      <InviteMemberDialog
+        open={invite.open}
+        targetName={
+          invite.target.type === 'file'
+            ? (activeFile?.name ?? 'file')
+            : (activeFolderForMenu?.name ?? 'folder')
+        }
+        email={invite.email}
+        role={invite.role}
+        message={invite.message}
+        submitting={invite.submitting}
+        onEmailChange={invite.setEmail}
+        onRoleChange={invite.setRole}
+        onSubmit={invite.submit}
+        onClose={() => invite.setOpen(false)}
+      />
+      <FilePreviewDialog
+        open={preview.open}
+        file={activeFile}
+        url={preview.url}
+        loading={preview.loading}
+        error={preview.error}
+        onError={preview.setError}
+        onClose={preview.close}
+      />
     </>
   );
 }
