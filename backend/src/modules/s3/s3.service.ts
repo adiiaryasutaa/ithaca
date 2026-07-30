@@ -11,14 +11,11 @@ import type { Response } from 'express';
 import type { Readable } from 'node:stream';
 import { prisma } from '../../config/prisma.js';
 import { decryptText } from '../../utils/crypto.js';
+import { applyStreamHeaders } from '../files/stream-headers.js';
 
 type S3Config = S3StorageConfig;
 type FileWithAccount = File & { connectedAccount: ConnectedAccount };
 type StreamOptions = { disposition?: 'inline' | 'attachment' };
-
-function contentDisposition(type: 'inline' | 'attachment', fileName: string) {
-  return `${type}; filename="${fileName.replaceAll('"', '')}"`;
-}
 
 export function createS3Client(config: S3Config) {
   return new S3Client({
@@ -123,10 +120,11 @@ export async function streamS3File(
   );
 
   res.status(response.ContentRange ? 206 : 200);
-  res.setHeader('Content-Type', response.ContentType ?? file.mimeType);
-  res.setHeader('Accept-Ranges', 'bytes');
-  if (options.disposition)
-    res.setHeader('Content-Disposition', contentDisposition(options.disposition, file.name));
+  applyStreamHeaders(
+    res,
+    { mimeType: response.ContentType ?? file.mimeType, fileName: file.name },
+    options.disposition,
+  );
   if (response.ContentLength !== undefined)
     res.setHeader('Content-Length', response.ContentLength.toString());
   if (response.ContentRange) res.setHeader('Content-Range', response.ContentRange);

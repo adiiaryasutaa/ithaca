@@ -8,6 +8,11 @@ import { setAuthSession, type AuthUser } from '@/lib/auth';
 
 type AuthResponse = { accessToken: string; refreshToken: string; user: AuthUser };
 
+const STATUS_MESSAGES: Record<string, string> = {
+  unknown_account: 'No Ithaca account exists for that Google address. Ask an admin to create one.',
+  account_disabled: 'This account has been disabled.',
+};
+
 export function GoogleAuthPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -16,9 +21,12 @@ export function GoogleAuthPage() {
   const status = params.get('status');
 
   useEffect(() => {
-    if (status === 'error' || !token) {
-      setMessage('Google sign-in failed. Please try again.');
-      toast.error('Google sign-in failed. Please try again.');
+    if (status || !token) {
+      const failure =
+        (status ? STATUS_MESSAGES[status] : undefined) ??
+        'Google sign-in failed. Please try again.';
+      setMessage(failure);
+      toast.error(failure);
       return;
     }
 

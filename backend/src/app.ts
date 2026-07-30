@@ -1,9 +1,11 @@
 import cors from 'cors';
 import express from 'express';
+import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
+import { publicLimiter } from './middleware/rate-limit.middleware.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { providerConfigRouter } from './modules/provider-configs/provider-config.routes.js';
 import { connectedAccountRouter } from './modules/connected-accounts/connected-account.routes.js';
@@ -20,8 +22,24 @@ import { systemRouter } from './modules/system/system.routes.js';
 import { userRouter } from './modules/users/user.routes.js';
 
 export const app = express();
-app.set('trust proxy', true);
+// Exactly one proxy hop (Vercel). `true` would trust any client-supplied X-Forwarded-For
+// and let the rate limiters below be bypassed by spoofing the header.
+app.set('trust proxy', 1);
 
+app.use(
+  helmet({
+    // Share pages embed backend stream URLs directly (<iframe> for PDFs, <img>/<video> for
+    // media) and the documented self-host topology puts the API on a different origin than
+    // the SPA, so SAMEORIGIN framing and same-site CORP would break preview. Framing is
+    // instead restricted to the known frontend via frame-ancestors below.
+    xFrameOptions: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: { 'frame-ancestors': ["'self'", env.FRONTEND_URL] },
+    },
+  }),
+);
 app.use(cors({ origin: env.FRONTEND_URL }));
 app.use(express.json({ limit: '1mb' }));
 app.use(

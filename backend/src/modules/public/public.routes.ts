@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../config/prisma.js';
 import { hashToken } from '../../utils/crypto.js';
+import { publicLimiter } from '../../middleware/rate-limit.middleware.js';
 import { streamProviderFile } from '../files/stream-file.js';
 
 export const publicRouter = Router();
@@ -20,7 +21,10 @@ async function findSharedFile(token: string) {
   return share.file;
 }
 
-publicRouter.get('/files/:token', async (req, res, next) => {
+// Only the metadata lookup is limited. The download/preview routes serve ranged media —
+// a single video generates hundreds of chunk and seek requests — so limiting them would
+// break playback without adding much: a token has to be guessed here first.
+publicRouter.get('/files/:token', publicLimiter, async (req, res, next) => {
   try {
     const file = await findSharedFile(String(req.params.token));
     return res.json({

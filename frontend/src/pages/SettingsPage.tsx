@@ -44,6 +44,7 @@ function availableLabel(account: ConnectedAccount) {
 
 export function SettingsPage() {
   const user = getStoredUser();
+  const isAdmin = user?.role === 'admin';
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [s3Open, setS3Open] = useState(false);
@@ -615,198 +616,211 @@ export function SettingsPage() {
           </div>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between border-b border-border dark:border-slate-800 pb-3 mb-4">
-            <div className="flex items-center gap-2.5">
-              <Cloud className="h-5 w-5 text-primary" />
-              <h2 className="text-[17px] font-bold">Google OAuth Credentials</h2>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={() => setShowGoogleHelp(!showGoogleHelp)}
-            >
-              {showGoogleHelp ? 'Hide Guide' : 'Setup Guide'}
-            </Button>
-          </div>
-
-          {showGoogleHelp && (
-            <div className="mb-4 rounded-sm bg-muted dark:bg-slate-900 p-3.5 text-[13px] leading-relaxed text-muted-foreground border border-border dark:border-slate-800">
-              <p className="font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                How to setup Google credentials:
-              </p>
-              <ol className="list-decimal pl-4 space-y-1.5">
-                <li>
-                  Go to{' '}
-                  <a
-                    href="https://console.cloud.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Google Cloud Console
-                  </a>
-                  .
-                </li>
-                <li>
-                  Enable the <strong>Google Drive API</strong> in your project.
-                </li>
-                <li>
-                  Go to <strong>APIs & Services &gt; Credentials</strong>, click{' '}
-                  <strong>Create Credentials &gt; OAuth client ID</strong>.
-                </li>
-                <li>
-                  Set application type to <strong>Web application</strong>.
-                </li>
-                <li>
-                  Add this exact URL under <strong>Authorized redirect URIs</strong>:
-                  <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] bg-card dark:bg-slate-950 p-1.5 rounded-sm border border-border dark:border-slate-800 select-all overflow-x-auto">
-                    {googleRedirectUri || defaultRedirectUri}
-                  </div>
-                </li>
-                <li>
-                  Copy the generated <strong>Client ID</strong> and <strong>Client Secret</strong>{' '}
-                  into the form below and save.
-                </li>
-              </ol>
-            </div>
-          )}
-
-          <form onSubmit={saveGoogleConfig} className="grid gap-3.5">
-            <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
-              Client ID
-              <Input
-                placeholder="Enter Google Client ID"
-                value={googleClientId}
-                onChange={(e) => setGoogleClientId(e.target.value)}
-                required
-              />
-            </label>
-
-            <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
-              Client Secret{' '}
-              {hasSecret && (
-                <span className="font-normal text-emerald-600">(Already Configured)</span>
-              )}
-              <Input
-                type="password"
-                placeholder={hasSecret ? '••••••••••••••••••••••••' : 'Enter Google Client Secret'}
-                value={googleClientSecret}
-                onChange={(e) => setGoogleClientSecret(e.target.value)}
-                required={!hasSecret}
-              />
-            </label>
-
-            <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
-              Redirect URI (Optional)
-              <Input
-                placeholder={defaultRedirectUri}
-                value={googleRedirectUri}
-                onChange={(e) => setGoogleRedirectUri(e.target.value)}
-              />
-            </label>
-
-            <div className="flex justify-end mt-1">
-              <Button type="submit" disabled={savingGoogleConfig} size="sm">
-                {savingGoogleConfig ? 'Saving...' : 'Save Credentials'}
-              </Button>
-            </div>
-          </form>
-        </Card>
-
-        <Card className="overflow-hidden p-3.5">
-          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <RefreshCw className="h-5 w-5 text-primary" />
-                <h2 className="text-[16px] font-bold">System Update</h2>
-              </div>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                Pull the latest code from GitHub. Dev servers will automatically restart.
-              </p>
-            </div>
-            <Button
-              className="w-full sm:w-32"
-              variant="outline"
-              size="sm"
-              onClick={runSystemUpdate}
-              disabled={updatingSystem}
-            >
-              <RefreshCw className={updatingSystem ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-              {updatingSystem ? 'Updating...' : 'Update Code'}
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="overflow-hidden p-3.5">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-border dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <Database className="h-5 w-5 text-primary" />
-                <h2 className="text-[16px] font-bold">Backup & Restore Database</h2>
-              </div>
-              <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
-                SQLite Local Database
-              </span>
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              {/* Download Backup Section (Translucent Green Glass) */}
-              <div className="rounded-sm bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 hover:border-emerald-500/40 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 shrink-0 rounded-sm bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                    <HardDrive className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground dark:text-slate-100">
-                      Download Database Backup
-                    </h3>
-                    <p className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground leading-normal">
-                      Save a copy of your active database containing accounts, virtual folders, file
-                      metadata, and configurations.
-                    </p>
-                  </div>
+        {/* Admin-only: these all call /system/*, which is gated by requireAdmin. */}
+        {isAdmin ? (
+          <>
+            <Card className="p-4">
+              <div className="flex items-center justify-between border-b border-border dark:border-slate-800 pb-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <Cloud className="h-5 w-5 text-primary" />
+                  <h2 className="text-[17px] font-bold">Google OAuth Credentials</h2>
                 </div>
-                <Button className="mt-5 w-full" onClick={downloadBackup} disabled={downloadingBackup}>
-                  <HardDrive className="h-4 w-4" />
-                  {downloadingBackup ? 'Downloading...' : 'Download Backup'}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => setShowGoogleHelp(!showGoogleHelp)}
+                >
+                  {showGoogleHelp ? 'Hide Guide' : 'Setup Guide'}
                 </Button>
               </div>
 
-              {/* Restore Backup Section (Translucent Orange Glass) */}
-              <div className="rounded-sm bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 hover:border-amber-500/40 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 shrink-0 rounded-sm bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                    <RefreshCw className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground dark:text-slate-100">
-                      Restore Database Backup
-                    </h3>
-                    <p className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground leading-normal">
-                      Upload a previously downloaded Ithaca backup file to replace the active
-                      database.
-                    </p>
-                  </div>
+              {showGoogleHelp && (
+                <div className="mb-4 rounded-sm bg-muted dark:bg-slate-900 p-3.5 text-[13px] leading-relaxed text-muted-foreground border border-border dark:border-slate-800">
+                  <p className="font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                    How to setup Google credentials:
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1.5">
+                    <li>
+                      Go to{' '}
+                      <a
+                        href="https://console.cloud.google.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Google Cloud Console
+                      </a>
+                      .
+                    </li>
+                    <li>
+                      Enable the <strong>Google Drive API</strong> in your project.
+                    </li>
+                    <li>
+                      Go to <strong>APIs & Services &gt; Credentials</strong>, click{' '}
+                      <strong>Create Credentials &gt; OAuth client ID</strong>.
+                    </li>
+                    <li>
+                      Set application type to <strong>Web application</strong>.
+                    </li>
+                    <li>
+                      Add this exact URL under <strong>Authorized redirect URIs</strong>:
+                      <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] bg-card dark:bg-slate-950 p-1.5 rounded-sm border border-border dark:border-slate-800 select-all overflow-x-auto">
+                        {googleRedirectUri || defaultRedirectUri}
+                      </div>
+                    </li>
+                    <li>
+                      Copy the generated <strong>Client ID</strong> and{' '}
+                      <strong>Client Secret</strong> into the form below and save.
+                    </li>
+                  </ol>
                 </div>
+              )}
 
-                <div className="mt-5 grid gap-3">
-                  <Input type="file" accept=".db" onChange={handleRestoreFileChange} />
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={restoreBackup}
-                    disabled={!restoreFile || restoringBackup}
-                  >
-                    <RefreshCw className={restoringBackup ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                    {restoringBackup ? 'Restoring & Restarting...' : 'Restore Backup'}
+              <form onSubmit={saveGoogleConfig} className="grid gap-3.5">
+                <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
+                  Client ID
+                  <Input
+                    placeholder="Enter Google Client ID"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
+                  Client Secret{' '}
+                  {hasSecret && (
+                    <span className="font-normal text-emerald-600">(Already Configured)</span>
+                  )}
+                  <Input
+                    type="password"
+                    placeholder={
+                      hasSecret ? '••••••••••••••••••••••••' : 'Enter Google Client Secret'
+                    }
+                    value={googleClientSecret}
+                    onChange={(e) => setGoogleClientSecret(e.target.value)}
+                    required={!hasSecret}
+                  />
+                </label>
+
+                <label className="grid gap-1.5 text-xs font-bold text-muted-foreground">
+                  Redirect URI (Optional)
+                  <Input
+                    placeholder={defaultRedirectUri}
+                    value={googleRedirectUri}
+                    onChange={(e) => setGoogleRedirectUri(e.target.value)}
+                  />
+                </label>
+
+                <div className="flex justify-end mt-1">
+                  <Button type="submit" disabled={savingGoogleConfig} size="sm">
+                    {savingGoogleConfig ? 'Saving...' : 'Save Credentials'}
                   </Button>
                 </div>
+              </form>
+            </Card>
+
+            <Card className="overflow-hidden p-3.5">
+              <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <RefreshCw className="h-5 w-5 text-primary" />
+                    <h2 className="text-[16px] font-bold">System Update</h2>
+                  </div>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    Pull the latest code from GitHub. Dev servers will automatically restart.
+                  </p>
+                </div>
+                <Button
+                  className="w-full sm:w-32"
+                  variant="outline"
+                  size="sm"
+                  onClick={runSystemUpdate}
+                  disabled={updatingSystem}
+                >
+                  <RefreshCw className={updatingSystem ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                  {updatingSystem ? 'Updating...' : 'Update Code'}
+                </Button>
               </div>
-            </div>
-          </div>
-        </Card>
+            </Card>
+
+            <Card className="overflow-hidden p-3.5">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-border dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Database className="h-5 w-5 text-primary" />
+                    <h2 className="text-[16px] font-bold">Backup & Restore Database</h2>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
+                    SQLite Local Database
+                  </span>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {/* Download Backup Section (Translucent Green Glass) */}
+                  <div className="rounded-sm bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 hover:border-emerald-500/40 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 shrink-0 rounded-sm bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <HardDrive className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground dark:text-slate-100">
+                          Download Database Backup
+                        </h3>
+                        <p className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground leading-normal">
+                          Save a copy of your active database containing accounts, virtual folders,
+                          file metadata, and configurations.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      className="mt-5 w-full"
+                      onClick={downloadBackup}
+                      disabled={downloadingBackup}
+                    >
+                      <HardDrive className="h-4 w-4" />
+                      {downloadingBackup ? 'Downloading...' : 'Download Backup'}
+                    </Button>
+                  </div>
+
+                  {/* Restore Backup Section (Translucent Orange Glass) */}
+                  <div className="rounded-sm bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 hover:border-amber-500/40 transition-all duration-300 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 shrink-0 rounded-sm bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <RefreshCw className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground dark:text-slate-100">
+                          Restore Database Backup
+                        </h3>
+                        <p className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground leading-normal">
+                          Upload a previously downloaded Ithaca backup file to replace the active
+                          database.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3">
+                      <Input type="file" accept=".db" onChange={handleRestoreFileChange} />
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={restoreBackup}
+                        disabled={!restoreFile || restoringBackup}
+                      >
+                        <RefreshCw
+                          className={restoringBackup ? 'h-4 w-4 animate-spin' : 'h-4 w-4'}
+                        />
+                        {restoringBackup ? 'Restoring & Restarting...' : 'Restore Backup'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </>
+        ) : null}
       </div>
       <DummyModal
         open={s3Open}

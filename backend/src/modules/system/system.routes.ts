@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { exec, spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { requireAuth } from '../../middleware/auth.middleware.js';
+import { requireAuth, requireAdmin } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../config/prisma.js';
 import { logger } from '../../config/logger.js';
 import { decryptText, encryptText } from '../../utils/crypto.js';
@@ -10,7 +10,11 @@ import Busboy from 'busboy';
 
 export const systemRouter = Router();
 
-systemRouter.post('/update', requireAuth, (req, res, next) => {
+// Every route here is a privileged ops lever — triggering a code pull + process restart,
+// or rewriting the global Google OAuth credentials. Admin-only, not merely authenticated.
+systemRouter.use(requireAuth, requireAdmin);
+
+systemRouter.post('/update', (req, res, next) => {
   const projectRoot = path.resolve(process.cwd(), '..');
   const updateScript = path.join(projectRoot, 'update.sh');
 
@@ -78,7 +82,7 @@ systemRouter.post('/update', requireAuth, (req, res, next) => {
   });
 });
 
-systemRouter.get('/update-log', requireAuth, (req, res) => {
+systemRouter.get('/update-log', (req, res) => {
   const projectRoot = path.resolve(process.cwd(), '..');
   const logFile = path.join(projectRoot, 'update.log');
 
@@ -102,7 +106,7 @@ systemRouter.get('/update-log', requireAuth, (req, res) => {
   }
 });
 
-systemRouter.get('/google-config', requireAuth, async (req, res, next) => {
+systemRouter.get('/google-config', async (req, res, next) => {
   try {
     const config = await prisma.providerConfig.findFirst({
       where: { userId: null, provider: 'google_drive', status: 'active' },
@@ -137,7 +141,7 @@ systemRouter.get('/google-config', requireAuth, async (req, res, next) => {
   }
 });
 
-systemRouter.post('/google-config', requireAuth, async (req, res, next) => {
+systemRouter.post('/google-config', async (req, res, next) => {
   try {
     const { clientId, clientSecret, redirectUri } = req.body;
 
@@ -204,13 +208,13 @@ systemRouter.post('/google-config', requireAuth, async (req, res, next) => {
   }
 });
 
-systemRouter.get('/backup', requireAuth, (req, res, next) => {
+systemRouter.get('/backup', (req, res, next) => {
   try {
     if (!isSqliteMode()) {
       return res.status(501).json({
         code: 'NOT_SUPPORTED',
         message:
-          'DB backup/restore only supports SQLite-mode deployments. This instance runs on Postgres/MySQL — use the provider\'s own backup tooling (e.g. Neon branch snapshots, mysqldump).',
+          "DB backup/restore only supports SQLite-mode deployments. This instance runs on Postgres/MySQL — use the provider's own backup tooling (e.g. Neon branch snapshots, mysqldump).",
       });
     }
     const dbPath = getDatabaseFilePath();
@@ -226,13 +230,13 @@ systemRouter.get('/backup', requireAuth, (req, res, next) => {
   }
 });
 
-systemRouter.post('/restore', requireAuth, (req, res, next) => {
+systemRouter.post('/restore', (req, res, next) => {
   try {
     if (!isSqliteMode()) {
       return res.status(501).json({
         code: 'NOT_SUPPORTED',
         message:
-          'DB backup/restore only supports SQLite-mode deployments. This instance runs on Postgres/MySQL — use the provider\'s own backup tooling (e.g. Neon branch snapshots, mysqldump).',
+          "DB backup/restore only supports SQLite-mode deployments. This instance runs on Postgres/MySQL — use the provider's own backup tooling (e.g. Neon branch snapshots, mysqldump).",
       });
     }
     const contentType = req.headers['content-type'];

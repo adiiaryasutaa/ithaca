@@ -25,12 +25,16 @@ export function requireApiKey(scope: string) {
       if (!header?.startsWith('Bearer '))
         return res.status(401).json({ code: 'API_KEY_REQUIRED', message: 'API key required.' });
       const rawKey = header.slice(7).trim();
-      const apiKey = await prisma.apiKey.findUnique({ where: { keyHash: hashToken(rawKey) } });
+      const apiKey = await prisma.apiKey.findUnique({
+        where: { keyHash: hashToken(rawKey) },
+        include: { user: { select: { status: true } } },
+      });
       if (
         !apiKey ||
         apiKey.status !== 'active' ||
         apiKey.revokedAt ||
-        (apiKey.expiresAt && apiKey.expiresAt <= new Date())
+        (apiKey.expiresAt && apiKey.expiresAt <= new Date()) ||
+        apiKey.user.status !== 'active'
       )
         return res.status(401).json({ code: 'API_KEY_INVALID', message: 'Invalid API key.' });
       const scopes = normalizeScopes(apiKey.scopes);

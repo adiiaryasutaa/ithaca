@@ -5,7 +5,8 @@ import { prisma } from '../../config/prisma.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.middleware.js';
-import { hashPassword, verifyPassword } from '../../utils/password.js';
+import { credentialsLimiter, refreshLimiter } from '../../middleware/rate-limit.middleware.js';
+import { verifyPassword } from '../../utils/password.js';
 import { encryptText, hashToken, randomToken } from '../../utils/crypto.js';
 import { signAccessToken } from '../../utils/jwt.js';
 import { createOAuthClient, syncGoogleQuota } from '../google/google.service.js';
@@ -32,7 +33,7 @@ async function createSession(userId: string, req: AuthRequest) {
   return { accessToken: signAccessToken({ sub: userId, sid: session.id }), refreshToken };
 }
 
-authRouter.post('/login', async (req, res, next) => {
+authRouter.post('/login', credentialsLimiter, async (req, res, next) => {
   try {
     const body = loginSchema.parse(req.body);
     const user = await prisma.user.findUnique({ where: { email: normalizeEmail(body.email) } });
@@ -54,7 +55,7 @@ authRouter.post('/login', async (req, res, next) => {
   }
 });
 
-authRouter.get('/google/url', async (_req, res, next) => {
+authRouter.get('/google/url', credentialsLimiter, async (_req, res, next) => {
   try {
     const config = await prisma.providerConfig.findFirstOrThrow({
       where: { userId: null, provider: 'google_drive', status: 'active' },
@@ -106,12 +107,13 @@ authRouter.get('/google/callback', async (req, res) => {
       return res.redirect(`${env.FRONTEND_URL}/google-auth?status=error`);
     const email = normalizeEmail(profile.data.email);
 
-    const name = profile.data.name || email.split('@')[0] || 'Google User';
-    const user = await prisma.user.upsert({
-      where: { email },
-      create: { email, name, passwordHash: await hashPassword(randomToken(32)) },
-      update: { name },
-    });
+    // Registration is admin-only: Google login authenticates existing users, it never
+    // provisions new ones. Without this the callback would hand a full workspace session
+    // to any Google account that completes the consent flow.
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.redirect(`${env.FRONTEND_URL}/google-auth?status=unknown_account`);
+    if (user.status !== 'active')
+      return res.redirect(`${env.FRONTEND_URL}/google-auth?status=account_disabled`);
     const existingAccount = await prisma.connectedAccount.findUnique({
       where: {
         provider_providerAccountId: {
@@ -180,7 +182,7 @@ authRouter.get('/google/callback', async (req, res) => {
   }
 });
 
-authRouter.post('/google/exchange', async (req, res, next) => {
+authRouter.post('/google/exchange', credentialsLimiter, async (req, res, next) => {
   try {
     const body = googleExchangeSchema.parse(req.body);
     const handoff = await prisma.authHandoff.findFirst({
@@ -202,21 +204,39 @@ authRouter.post('/google/exchange', async (req, res, next) => {
   }
 });
 
-authRouter.post('/refresh', async (req, res, next) => {
+authRouter.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
     const body = refreshSchema.parse(req.body);
+    const presentedHash = hashToken(body.refreshToken);
     const session = await prisma.userSession.findFirst({
-      where: {
-        refreshTokenHash: hashToken(body.refreshToken),
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+      where: { refreshTokenHash: presentedHash, revokedAt: null, expiresAt: { gt: new Date() } },
+      include: { user: { select: { status: true } } },
     });
     if (!session)
       return res
         .status(401)
         .json({ code: 'AUTH_SESSION_EXPIRED', message: 'Refresh token expired.' });
-    return res.json({ accessToken: signAccessToken({ sub: session.userId, sid: session.id }) });
+    if (session.user.status !== 'active')
+      return res
+        .status(403)
+        .json({ code: 'ACCOUNT_DISABLED', message: 'This account has been disabled.' });
+    // Rotate on every use so a leaked token stops working as soon as either party refreshes.
+    // The update is conditional on the hash we read: two concurrent refreshes with the same
+    // token would otherwise both "succeed" and hand out two tokens, only one of which is
+    // still stored. The loser gets a 401 and retries with the token it already holds.
+    const refreshToken = randomToken();
+    const rotated = await prisma.userSession.updateMany({
+      where: { id: session.id, refreshTokenHash: presentedHash },
+      data: { refreshTokenHash: hashToken(refreshToken) },
+    });
+    if (rotated.count === 0)
+      return res
+        .status(409)
+        .json({ code: 'AUTH_REFRESH_RACE', message: 'Refresh already in progress. Retry.' });
+    return res.json({
+      accessToken: signAccessToken({ sub: session.userId, sid: session.id }),
+      refreshToken,
+    });
   } catch (error) {
     return next(error);
   }

@@ -44,6 +44,19 @@ function serializeUser(user: {
   };
 }
 
+// Disabling an account is the only access boundary in this shared workspace, so it has to
+// tear down the sessions the user already holds — otherwise their access and refresh tokens
+// keep working until they expire on their own. API keys are deliberately left alone:
+// requireApiKey already rejects keys whose owner is not active, so revoking them adds
+// nothing and cannot be undone, which would silently destroy the user's integrations if an
+// admin re-enables the account.
+async function revokeUserSessions(userId: string) {
+  await prisma.userSession.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
 userRouter.get('/', async (_req: AuthRequest, res, next) => {
   try {
     const users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
@@ -91,6 +104,12 @@ userRouter.patch('/:id', async (req: AuthRequest, res, next) => {
   try {
     const id = String(req.params.id);
     const body = updateSchema.parse(req.body);
+    // Same guard as DELETE: disabling yourself revokes your own session mid-request, and if
+    // you are the only admin nothing can re-enable the account.
+    if (body.status === 'disabled' && id === req.user!.id)
+      return res
+        .status(400)
+        .json({ code: 'CANNOT_DISABLE_SELF', message: 'You cannot disable your own account.' });
     const data: {
       name?: string;
       email?: string;
@@ -105,6 +124,7 @@ userRouter.patch('/:id', async (req: AuthRequest, res, next) => {
     };
     if (body.password) data.passwordHash = await hashPassword(body.password);
     const user = await prisma.user.update({ where: { id }, data });
+    if (body.status === 'disabled') await revokeUserSessions(id);
     await createAuditLog(req.user!.id, 'UPDATE_USER', 'user', id, {
       fields: Object.keys(body),
     });
@@ -122,6 +142,7 @@ userRouter.delete('/:id', async (req: AuthRequest, res, next) => {
         .status(400)
         .json({ code: 'CANNOT_DELETE_SELF', message: 'You cannot disable your own account.' });
     await prisma.user.update({ where: { id }, data: { status: 'disabled' } });
+    await revokeUserSessions(id);
     await createAuditLog(req.user!.id, 'DISABLE_USER', 'user', id);
     return res.json({ status: 'ok' });
   } catch (error) {

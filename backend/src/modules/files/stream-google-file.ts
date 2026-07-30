@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { ConnectedAccount, File } from '@prisma/client';
 import { getAuthedGoogleClient } from '../google/google.service.js';
+import { applyStreamHeaders } from './stream-headers.js';
 
 type FileWithAccount = File & { connectedAccount: ConnectedAccount };
 type StreamOptions = { disposition?: 'inline' | 'attachment' };
@@ -22,10 +23,6 @@ const googlePreviewExportMimeTypes: Record<string, { mimeType: string; extension
   ...googleDownloadExportMimeTypes,
   'application/vnd.google-apps.spreadsheet': { mimeType: 'application/pdf', extension: '.pdf' },
 };
-
-function contentDisposition(type: 'inline' | 'attachment', fileName: string) {
-  return `${type}; filename="${fileName.replaceAll('"', '')}"`;
-}
 
 export function withExtension(fileName: string, extension: string) {
   return fileName.toLowerCase().endsWith(extension) ? fileName : `${fileName}${extension}`;
@@ -69,10 +66,11 @@ export async function streamGoogleFile(
   }
 
   res.status(response.status);
-  res.setHeader('Content-Type', responseMimeType);
-  res.setHeader('Accept-Ranges', 'bytes');
-  if (options.disposition)
-    res.setHeader('Content-Disposition', contentDisposition(options.disposition, responseFileName));
+  applyStreamHeaders(
+    res,
+    { mimeType: responseMimeType, fileName: responseFileName },
+    options.disposition,
+  );
 
   const contentLength = response.headers.get('content-length');
   const contentRange = response.headers.get('content-range');

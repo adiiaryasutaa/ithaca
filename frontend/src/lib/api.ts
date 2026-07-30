@@ -1,4 +1,10 @@
-import { clearAuthSession, getAccessToken, getRefreshToken, setAccessToken } from '@/lib/auth';
+import {
+  clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+} from '@/lib/auth';
 
 const isProd = import.meta.env.PROD;
 const rawApiUrl = import.meta.env.VITE_API_URL;
@@ -11,7 +17,7 @@ export const API_URL =
 
 type ApiOptions = RequestInit & { skipAuth?: boolean; retry?: boolean };
 
-async function refreshAccessToken() {
+async function requestRefresh() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
   const response = await fetch(`${API_URL}/auth/refresh`, {
@@ -20,9 +26,27 @@ async function refreshAccessToken() {
     body: JSON.stringify({ refreshToken }),
   });
   if (!response.ok) return false;
-  const data = (await response.json()) as { accessToken: string };
+  const data = (await response.json()) as { accessToken: string; refreshToken?: string };
   setAccessToken(data.accessToken);
+  // The backend rotates the refresh token on every use — persist the new one or the
+  // next refresh replays a token the server has already retired.
+  if (data.refreshToken) setRefreshToken(data.refreshToken);
   return true;
+}
+
+// A page that fires N requests in parallel gets N simultaneous 401s when the access token
+// lapses. Without this, each would POST /auth/refresh with the same token; the first
+// rotates it and the rest replay a hash the server already retired, failing and logging the
+// user out. All callers share one in-flight refresh instead.
+let inFlightRefresh: Promise<boolean> | null = null;
+
+function refreshAccessToken() {
+  if (!inFlightRefresh) {
+    inFlightRefresh = requestRefresh().finally(() => {
+      inFlightRefresh = null;
+    });
+  }
+  return inFlightRefresh;
 }
 
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -44,7 +68,14 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    if (response.status === 401) clearAuthSession();
+    // ACCOUNT_DISABLED is a 403, but the session is dead — drop it and bounce to login
+    // rather than leaving the user on a page that 403s on every request.
+    if (error.code === 'ACCOUNT_DISABLED') {
+      clearAuthSession();
+      window.location.assign('/login');
+    } else if (response.status === 401) {
+      clearAuthSession();
+    }
     throw new Error(error.message ?? 'Request failed');
   }
 

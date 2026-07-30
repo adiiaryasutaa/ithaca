@@ -12,9 +12,16 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
     if (!header?.startsWith('Bearer '))
       return res.status(401).json({ code: 'AUTH_REQUIRED', message: 'Bearer token required.' });
     const payload = verifyAccessToken(header.slice(7));
-    const session = await prisma.userSession.findUnique({ where: { id: payload.sid } });
+    const session = await prisma.userSession.findUnique({
+      where: { id: payload.sid },
+      include: { user: { select: { status: true } } },
+    });
     if (!session || session.revokedAt || session.expiresAt < new Date())
       return res.status(401).json({ code: 'AUTH_SESSION_EXPIRED', message: 'Session expired.' });
+    if (session.user.status !== 'active')
+      return res
+        .status(403)
+        .json({ code: 'ACCOUNT_DISABLED', message: 'This account has been disabled.' });
     req.user = { id: payload.sub, sessionId: payload.sid };
     return next();
   } catch {
