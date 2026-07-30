@@ -55,6 +55,17 @@ export type StorageSummary = {
   totalBytes: string;
   usedBytes: string;
   availableBytes: string;
+  // Per-account rows returned alongside the totals by GET /storage/summary.
+  accounts?: {
+    id: string;
+    provider: string;
+    email: string;
+    status: string;
+    totalBytes: string | null;
+    usedBytes: string;
+    availableBytes: string | null;
+    lastSyncedAt: string | null;
+  }[];
 };
 
 export type StorageBreakdown = {
