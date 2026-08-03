@@ -15,7 +15,7 @@ Ithaca is a Google Drive storage gateway. It lets users log in with email/passwo
 ## Requirements
 
 - Node.js 20+
-- npm
+- pnpm 10 (pinned by the `packageManager` field in each package; run it via `corepack pnpm@10.34.5` if your global pnpm is newer)
 - Postgres 16+ (or a [Neon](https://neon.com) connection string)
 - Google Cloud project with Google Drive API enabled
 - Google OAuth client ID and secret
@@ -23,6 +23,7 @@ Ithaca is a Google Drive storage gateway. It lets users log in with email/passwo
 ## Backend
 
 Stack:
+
 - Express 5
 - TypeScript
 - Prisma 6
@@ -35,6 +36,7 @@ Stack:
 - Undici for Google file streaming
 
 Important files:
+
 - `backend/src/server.ts`: server entrypoint.
 - `backend/src/app.ts`: Express app and route mounting.
 - `backend/src/config/env.ts`: environment validation.
@@ -47,14 +49,16 @@ Important files:
 - `backend/src/scripts/seed-google-config.ts`: stores encrypted global Google OAuth config.
 
 Commands:
-- `cd backend && npm run dev`: start development server.
-- `cd backend && npm run build`: typecheck/build backend.
-- `cd backend && npm run start`: run compiled backend from `dist/server.js`.
-- `cd backend && npm run prisma:migrate`: run Prisma dev migration.
-- `cd backend && npm run prisma:generate`: regenerate Prisma client.
-- `cd backend && npm run seed:google-config`: store encrypted Google OAuth config.
+
+- `cd backend && pnpm dev`: start development server.
+- `cd backend && pnpm build`: typecheck/build backend.
+- `cd backend && pnpm start`: run compiled backend from `dist/server.js`.
+- `cd backend && pnpm prisma:migrate`: run Prisma dev migration.
+- `cd backend && pnpm prisma:generate`: regenerate Prisma client.
+- `cd backend && pnpm seed:google-config`: store encrypted Google OAuth config.
 
 Environment:
+
 - `DATABASE_URL`
 - `APP_PORT`
 - `FRONTEND_URL`
@@ -68,6 +72,7 @@ Environment:
 - `GOOGLE_REDIRECT_URI`
 
 Backend conventions:
+
 - Put route logic under `backend/src/modules/<feature>/<feature>.routes.ts`.
 - Mount new routers in `backend/src/app.ts`.
 - Use `requireAuth` for authenticated routes.
@@ -82,6 +87,7 @@ Backend conventions:
 - Google sign-in uses one-time auth handoff tokens; never send app access/refresh tokens through URL query params.
 
 Security rules:
+
 - Never commit `.env` files or secrets.
 - Never log access tokens, refresh tokens, OAuth client secrets, JWT secrets, encryption keys, or raw public share tokens.
 - Google tokens are encrypted before database storage.
@@ -92,6 +98,7 @@ Security rules:
 - Keep auth/token storage behavior centralized; do not change without explicit reason.
 
 Database rules:
+
 - Change DB schema through Prisma schema and migrations.
 - Do not hand-edit generated Prisma client files.
 - After schema changes, run Prisma migration/generation and backend build.
@@ -100,6 +107,7 @@ Database rules:
 ## Frontend
 
 Stack:
+
 - React 19
 - Vite 8
 - TypeScript
@@ -111,23 +119,24 @@ Stack:
 - tailwind-merge
 
 Component organization is Atomic Design. Components live under `frontend/src/components/` in
-five tiers, and imports only ever point *down* the list:
+five tiers, and imports only ever point _down_ the list:
 
-| Tier | Holds | May import |
-| --- | --- | --- |
-| `ui/` | shadcn primitives, vendored by the CLI | — |
-| `atoms/` | one element, no app state (BrandLogo, FileIcon, StatusBadge) | `ui/`, `lib/` |
-| `molecules/` | a few atoms, still dumb (PageHeader, MetricCard, CodeBlock, QuotaBar) | atoms, `ui/`, `lib/` |
-| `organisms/` | owns a whole section; may read hooks/context and fetch its own data (FileTable, AppHeader, the dialogs, the settings cards) | molecules and below, `hooks/`, `context/` |
-| `templates/` | page shell (DriveLayout) | organisms and below |
-| `pages/` (in `src/pages/`) | route + state + composition | everything |
+| Tier                       | Holds                                                                                                                       | May import                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `ui/`                      | shadcn primitives, vendored by the CLI                                                                                      | —                                         |
+| `atoms/`                   | one element, no app state (BrandLogo, FileIcon, StatusBadge)                                                                | `ui/`, `lib/`                             |
+| `molecules/`               | a few atoms, still dumb (PageHeader, MetricCard, CodeBlock, QuotaBar)                                                       | atoms, `ui/`, `lib/`                      |
+| `organisms/`               | owns a whole section; may read hooks/context and fetch its own data (FileTable, AppHeader, the dialogs, the settings cards) | molecules and below, `hooks/`, `context/` |
+| `templates/`               | page shell (DriveLayout)                                                                                                    | organisms and below                       |
+| `pages/` (in `src/pages/`) | route + state + composition                                                                                                 | everything                                |
 
 Rules:
-- `components/ui/` is off-limits to the tier scheme. It is vendored by `npx shadcn@latest add`
+
+- `components/ui/` is off-limits to the tier scheme. It is vendored by `pnpm dlx shadcn@latest add`
   against the path in `components.json`; do not move it or hand-edit generated primitives.
 - Never import upward, and never sideways within a tier. An atom that needs another atom is a
   molecule.
-- A dialog opened *by a page* stays presentational: props in, callbacks out, mutations in the
+- A dialog opened _by a page_ stays presentational: props in, callbacks out, mutations in the
   page. A self-contained section organism (e.g. `SystemUpdateCard`) may own its own fetching
   when nothing else on the page reads that data.
 - Non-component code does not belong in component files: types, constants, formatters and
@@ -136,6 +145,7 @@ Rules:
 - There is no ESLint in this project, so the tier rule is review-enforced.
 
 Important files:
+
 - `frontend/src/main.tsx`: React entrypoint.
 - `frontend/src/App.tsx`: route registration.
 - `frontend/src/routes/ProtectedRoute.tsx`: auth guard wrapping the dashboard routes.
@@ -159,14 +169,17 @@ Important files:
 - `frontend/src/style.css`: Tailwind import and global styles.
 
 Commands:
-- `cd frontend && npm run dev`: start Vite dev server.
-- `cd frontend && npm run build`: typecheck/build frontend.
-- `cd frontend && npm run preview`: preview production build.
+
+- `cd frontend && pnpm dev`: start Vite dev server.
+- `cd frontend && pnpm build`: typecheck/build frontend.
+- `cd frontend && pnpm preview`: preview production build.
 
 Environment:
+
 - `VITE_API_URL`: backend base URL. Vite embeds this at build time.
 
 Frontend conventions:
+
 - Use `@/*` imports for files under `frontend/src`.
 - Place new components in the correct Atomic Design tier and respect the one-way import rule above.
 - Keep route registration in `frontend/src/App.tsx`.
@@ -182,11 +195,13 @@ Frontend conventions:
 ## API Notes
 
 General:
+
 - `GET /health`
 - Authenticated routes expect `Authorization: Bearer <accessToken>` unless listed as public.
 - Every authenticated route serves one shared workspace: responses are never filtered by the calling user. See the tenancy rule under Agent Rules.
 
 Auth:
+
 - `POST /auth/login`
 - `GET /auth/google/url`
 - `GET /auth/google/callback`
@@ -196,11 +211,13 @@ Auth:
 - `GET /auth/me`
 
 Provider configs:
+
 - `POST /provider-configs/google`
 - `GET /provider-configs`
 - `DELETE /provider-configs/:id`
 
 Google connected accounts:
+
 - `GET /connected-accounts/google/connect-url`
 - `GET /connected-accounts/google/connect`
 - `GET /connected-accounts/google/callback`
@@ -209,10 +226,12 @@ Google connected accounts:
 - `DELETE /connected-accounts/:id`
 
 Storage:
+
 - `GET /storage/summary`
 - `GET /storage/breakdown`
 
 Folders:
+
 - `GET /folders?parentId=<id>`
 - `GET /folders?all=1`
 - `GET /folders/recent?limit=4`
@@ -221,6 +240,7 @@ Folders:
 - `DELETE /folders/:id`
 
 Files:
+
 - `GET /files`
 - `GET /files?folderId=<id>`
 - `GET /files?q=<search>`
@@ -239,16 +259,19 @@ Files:
 - `GET /files/preview/:token`
 
 Invites:
+
 - `GET /invites`
 - `POST /invites`
 - `DELETE /invites/:id`
 
 Public shared files:
+
 - `GET /public/files/:token`
 - `GET /public/files/:token/download`
 - `GET /public/files/:token/preview`
 
 Uploads:
+
 - `POST /uploads`
 - Content type: `multipart/form-data`.
 - Current frontend sends metadata first as `filesMeta`: JSON array of `{ fieldName, fileName, mimeType, sizeBytes, folderId? }`.
@@ -260,8 +283,9 @@ Uploads:
 ## Docker
 
 Commands:
+
 - `docker compose up -d --build`: build and start Postgres, backend, frontend.
-- `docker compose exec backend npm run seed:google-config`: seed Google config inside backend container.
+- `docker compose exec backend pnpm seed:google-config`: seed Google config inside backend container.
 - `docker compose logs -f backend`: backend logs.
 - `docker compose logs -f frontend`: frontend logs.
 - `docker compose logs -f postgres`: Postgres logs.
@@ -269,6 +293,7 @@ Commands:
 - `docker compose down -v`: stop services and remove DB volume.
 
 Docker notes:
+
 - Postgres image is `postgres:16`.
 - Backend listens on `4000`.
 - Frontend build is served by nginx on host port `5173`.
@@ -278,16 +303,20 @@ Docker notes:
 ## Verification
 
 Before finishing backend changes:
-- `cd backend && npm run build`
+
+- `cd backend && pnpm build`
 
 Before finishing frontend changes:
-- `cd frontend && npm run build`
+
+- `cd frontend && pnpm build`
 
 Before finishing schema changes:
-- `cd backend && npm run prisma:migrate`
-- `cd backend && npm run build`
+
+- `cd backend && pnpm prisma:migrate`
+- `cd backend && pnpm build`
 
 Manual smoke test:
+
 - Login.
 - Open Settings.
 - Connect Google Drive.

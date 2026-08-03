@@ -3,15 +3,15 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 ARG VITE_API_URL=http://localhost:4000
-ARG VITE_RECAPTCHA_SITE_KEY=
 ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_RECAPTCHA_SITE_KEY=$VITE_RECAPTCHA_SITE_KEY
 
-COPY package*.json ./
-RUN npm ci
+RUN npm i -g pnpm@10.34.5
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm build
 
 FROM nginx:1.27-alpine
 

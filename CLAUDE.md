@@ -8,7 +8,8 @@ An `AGENTS.md` file also exists in the repo root with detailed conventions, envi
 
 Ithaca is a storage gateway: users connect multiple Google Drive accounts and/or S3-compatible buckets (MinIO, R2, Wasabi, B2, AWS S3) into one virtual dashboard. Uploads stream through the backend and are routed to whichever connected account has space; files are organized in app-level virtual folders backed by Postgres, not by the underlying provider's folder structure (except Google Drive, which mirrors folders as real Drive folders for the sync feature).
 
-**Single shared workspace — NOT multi-tenant.** Every authenticated user sees and controls the same connected accounts, quota, files, folders, routing policy, API keys, shares and activity log. The `userId` column on `File`/`Folder`/`ConnectedAccount`/etc. records *who created a row* and is never used to filter reads — new routes must not add `where: { userId: req.user!.id }`. Consequences to keep in mind:
+**Single shared workspace — NOT multi-tenant.** Every authenticated user sees and controls the same connected accounts, quota, files, folders, routing policy, API keys, shares and activity log. The `userId` column on `File`/`Folder`/`ConnectedAccount`/etc. records _who created a row_ and is never used to filter reads — new routes must not add `where: { userId: req.user!.id }`. Consequences to keep in mind:
+
 - Any login (and any API key, since `api-key.middleware.ts` makes a key act as its owner) can read, delete, and disconnect everything. Registration is disabled; accounts are admin-created, and that is the only access boundary. `requireAdmin` exists solely for `/users`.
 - `UploadRoutingPolicy` is a singleton row for the whole app — always go through `getOrCreateRoutingPolicy()` in `src/modules/storage/routing-policy.service.ts`, never `upsert({ where: { userId } })`.
 - `ConnectedAccount` is unique on `(provider, providerAccountId)`, so the same Drive/bucket cannot be connected twice by two users.
@@ -17,22 +18,24 @@ Ithaca is a storage gateway: users connect multiple Google Drive accounts and/or
 ## Commands
 
 Backend (`cd backend`):
-- `npm run dev` — tsx watch dev server
-- `npm run build` — typecheck/compile to `dist/`
-- `npm run start` — run compiled build
-- `npm run prisma:migrate` — dev migration (creates + applies)
-- `npm run db:migrate:deploy` — production migration (applies only)
-- `npm run prisma:generate` — regenerate Prisma client
-- `npm run seed:google-config` — store encrypted global Google OAuth config from env into DB
-- `npm run test:s3` — verify an S3-compatible config's connectivity
-- `npm run test:api-upload` — exercise `POST /api/v1/uploads` with an API key
+
+- `pnpm dev` — tsx watch dev server
+- `pnpm build` — typecheck/compile to `dist/`
+- `pnpm start` — run compiled build
+- `pnpm prisma:migrate` — dev migration (creates + applies)
+- `pnpm db:migrate:deploy` — production migration (applies only)
+- `pnpm prisma:generate` — regenerate Prisma client
+- `pnpm seed:google-config` — store encrypted global Google OAuth config from env into DB
+- `pnpm test:s3` — verify an S3-compatible config's connectivity
+- `pnpm test:api-upload` — exercise `POST /api/v1/uploads` with an API key
 
 Frontend (`cd frontend`):
-- `npm run dev` — Vite dev server
-- `npm run build` — `tsc && vite build`
-- `npm run preview` — preview production build
 
-No test suite exists in either package; "verification" is `npm run build` (typecheck) plus manual smoke testing through the UI.
+- `pnpm dev` — Vite dev server
+- `pnpm build` — `tsc && vite build`
+- `pnpm preview` — preview production build
+
+Both packages run Vitest (`pnpm test`, `pnpm test:watch`); backend coverage is thin and the frontend suite is minimal, so "verification" is `pnpm build` (typecheck) + `pnpm test` plus manual smoke testing through the UI.
 
 Docker: `docker compose up -d --build` runs Postgres + backend + frontend; backend runs `db:migrate:deploy` and Google config seeding automatically on container start. Production/staging run against [Neon](https://neon.com) (serverless Postgres, free-tier friendly) instead of the local Postgres container — see `DATABASE_URL` in `backend/.env.example`. Neon branches double as environments: `main` = prod, a `dev` branch = pre-prod, each with its own connection string; storage (0.5 GB on the free tier) is shared across all branches in a project, so stale branches should be deleted rather than left to accumulate.
 
@@ -41,6 +44,7 @@ Docker: `docker compose up -d --build` runs Postgres + backend + frontend; backe
 Entry: `src/server.ts` → `src/app.ts` mounts one router per feature under `src/modules/<feature>/`. Route mount order in `app.ts` matters for `/api` vs `/api-keys` disambiguation — check it before adding new top-level paths.
 
 **Two parallel storage providers, one upload path.** `src/modules/uploads/upload.routes.ts` is the center of the system. `selectAccount()` in that file picks which `ConnectedAccount` (provider `google_drive` or `s3`) receives an upload, based on the user's `UploadRoutingPolicy` (`most_available` | `round_robin` | `priority`), live-synced quota (`StorageAccount.availableBytes`, re-synced if stale >5min via `syncGoogleQuota`/`syncS3Quota`), and an explicit folder-pinned account override. Provider-specific logic then branches: Google uploads go through `src/modules/google/google.service.ts` (googleapis client, uploads into a Drive folder literally named `Ithaca`, files made public `anyone`/`writer` after upload) or S3 uploads go through `src/modules/s3/s3.service.ts` (`@aws-sdk/client-s3`). A `File` row is written to Postgres either way (`provider` column distinguishes them) — Postgres is the source of truth for the app UI, the remote provider is the source of truth for bytes.
+
 - Non-resumable upload buffers each file fully into memory (`Buffer.concat`) before handing it to the provider SDK — it does not disk-buffer, but it is not true zero-copy streaming either.
 - Google-only resumable upload endpoints (`/uploads/resumable/init|status|chunk`) talk to the Drive resumable API directly via `fetch` rather than `googleapis`, and are not implemented for S3.
 - `POST /files/sync-google` treats the Google Drive `Ithaca` folder as ground truth and reconciles Postgres `File` rows against it (create/update/mark-deleted). There is no equivalent reconciliation job for S3.
@@ -60,9 +64,9 @@ Prisma models worth knowing: `ConnectedAccount` (1:1 with `StorageAccount` for q
 
 Vite + React 19 + React Router 7, Tailwind CSS 4. Route table lives in `frontend/src/App.tsx`; protected pages are wrapped in `ProtectedRoute` (`frontend/src/routes/`) + `DriveLayout` (`frontend/src/components/templates/DriveLayout.tsx`, the sidebar/header/quota shell). Pages beyond the core file browser (`AllFilesPage.tsx`) include `ApiManagementPage.tsx` (API key CRUD/docs), `ActivityLogPage.tsx` (audit log viewer), `ArchivedPage.tsx`/`StarredPage.tsx`/`RecentPage.tsx` (static mockups still rendering `data/drive-data` fixtures, not wired to the backend), `TrashPage.tsx`, `QuotaTrackerPage.tsx`, `SettingsPage.tsx`, and the Google OAuth handoff/connect pages.
 
-**Components follow Atomic Design.** `frontend/src/components/` is `ui/` (vendored shadcn primitives) → `atoms/` → `molecules/` → `organisms/` → `templates/`, with `pages/` on top; imports only go *down* that list, never up and never sideways within a tier. `ui/` is exempt from the scheme: the shadcn CLI writes to the path in `components.json`, so it must not move. A dialog a page opens stays presentational (props in, callbacks out, mutations in the page); a self-contained section organism like `SystemUpdateCard` or `GoogleOAuthCredentialsCard` may own its own fetching. Types, constants and request helpers belong in `lib/`, stateful reusable logic in `hooks/` (`use-drive-files`, `use-file-selection`, `use-share-link`, `use-theme`, …) — not in component files. No barrel `index.ts` files. Nothing enforces this automatically; there is no ESLint in this project.
+**Components follow Atomic Design.** `frontend/src/components/` is `ui/` (vendored shadcn primitives) → `atoms/` → `molecules/` → `organisms/` → `templates/`, with `pages/` on top; imports only go _down_ that list, never up and never sideways within a tier. `ui/` is exempt from the scheme: the shadcn CLI writes to the path in `components.json`, so it must not move. A dialog a page opens stays presentational (props in, callbacks out, mutations in the page); a self-contained section organism like `SystemUpdateCard` or `GoogleOAuthCredentialsCard` may own its own fetching. Types, constants and request helpers belong in `lib/`, stateful reusable logic in `hooks/` (`use-drive-files`, `use-file-selection`, `use-share-link`, `use-theme`, …) — not in component files. No barrel `index.ts` files. Nothing enforces this automatically; there is no ESLint in this project.
 
-**Design system: shadcn/ui, Base UI flavor.** `frontend/components.json` was initialized from a hosted preset (`style: base-mira`, `baseColor: mist`, `iconLibrary: hugeicons`), so UI primitives in `frontend/src/components/ui/` are built on `@base-ui/react` (not `@radix-ui/*`) and icons come from `@hugeicons/*` (older pages still import `lucide-react` — both are installed). Add components with `npx shadcn@latest add <name>` from `frontend/` (Vite target — no `--template`/`--monorepo`). Theming is shadcn semantic tokens only: `frontend/src/style.css` holds the `:root`/`.dark` token blocks + `@theme inline` map — style with token utilities (`bg-card`, `border-border`, `text-muted-foreground`, `bg-primary`, `ring-ring`, `bg-destructive`), never raw `slate`/`blue` palette classes. Dark mode is the `.dark` class on `documentElement` (toggle + `ithaca:theme` persistence in `DriveLayout.tsx`). `--font-sans` is self-hosted Google Sans. base-mira is a compact scale (Button default `h-7 text-xs`). Button variants: `default|outline|secondary|ghost|destructive|link`. `<TooltipProvider>` + sonner `<Toaster />` are mounted in `App.tsx`.
+**Design system: shadcn/ui, Base UI flavor.** `frontend/components.json` was initialized from a hosted preset (`style: base-mira`, `baseColor: mist`, `iconLibrary: hugeicons`), so UI primitives in `frontend/src/components/ui/` are built on `@base-ui/react` (not `@radix-ui/*`) and icons come from `@hugeicons/*` (older pages still import `lucide-react` — both are installed). Add components with `pnpm dlx shadcn@latest add <name>` from `frontend/` (Vite target — no `--template`/`--monorepo`). Theming is shadcn semantic tokens only: `frontend/src/style.css` holds the `:root`/`.dark` token blocks + `@theme inline` map — style with token utilities (`bg-card`, `border-border`, `text-muted-foreground`, `bg-primary`, `ring-ring`, `bg-destructive`), never raw `slate`/`blue` palette classes. Dark mode is the `.dark` class on `documentElement` (toggle + `ithaca:theme` persistence in `DriveLayout.tsx`). `--font-sans` is self-hosted Google Sans. base-mira is a compact scale (Button default `h-7 text-xs`). Button variants: `default|outline|secondary|ghost|destructive|link`. `<TooltipProvider>` + sonner `<Toaster />` are mounted in `App.tsx`.
 
 `frontend/src/lib/api.ts` (`apiFetch`) centralizes JSON calls plus access-token refresh-and-retry; `frontend/src/lib/auth.ts` centralizes local session storage. Upload progress/state is global via `frontend/src/context/UploadContext.tsx`, driving the bottom-right upload progress panel referenced throughout the pages. Use raw `fetch`/`XMLHttpRequest` only where streaming/blob/progress requires it (uploads, downloads); everything else goes through `apiFetch`.
 

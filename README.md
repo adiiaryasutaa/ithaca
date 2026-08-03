@@ -1,8 +1,12 @@
-![Ithaca cover](https://i.ibb.co.com/35BySv1C/image.png)
-
 # Ithaca
 
-Ithaca is a storage gateway web app for connecting multiple Google Drive accounts into one virtual storage dashboard. Users can register with email/password or Google, automatically connect their first Google Drive account during Google sign-in, track quota, upload files into a dedicated `Ithaca` Drive folder, organize files with virtual folders, preview files, sync file records from Google Drive, and let the backend route uploads to the Drive account with enough free space.
+Ithaca is a storage gateway web app that unifies multiple Google Drive accounts and S3-compatible buckets (MinIO, Cloudflare R2, Wasabi, Backblaze B2, AWS S3) into one virtual storage dashboard. Uploads stream through the backend and are routed to whichever connected account has enough free space; files are organized in app-level virtual folders backed by Postgres, with quota tracking, preview, sharing, and manual sync from the Google Drive `Ithaca` folder.
+
+Ithaca is a single shared workspace, not a multi-tenant service: every signed-in user sees and controls the same connected accounts, files, folders, and settings. There is no self-registration — accounts are created by an admin from the Users page, and Google sign-in connects the first Drive account automatically.
+
+## Fork Notice
+
+Ithaca is a personal-use fork of [9drive](https://github.com/zenhosta/9drive) by zenhosta, rebranded and reworked for a single private deployment. It is not affiliated with or supported by upstream, and changes here are made for personal needs rather than general use.
 
 ## Features
 
@@ -14,7 +18,7 @@ Ithaca is a storage gateway web app for connecting multiple Google Drive account
 - Upload routing policies with most-available, round-robin, and priority-order modes.
 - External upload API using API keys at `POST /api/v1/uploads`.
 - API key management with one-time secret display, hashed key storage, last-used tracking, and revocation.
-- Email/password auth plus Google sign-in/register with automatic first Drive connection.
+- Email/password auth plus Google sign-in with automatic first Drive connection.
 - Multi-account storage quota summary.
 - Quota tracker page.
 - Manual sync from the Google Drive `Ithaca` folder back into the database.
@@ -25,22 +29,10 @@ Ithaca is a storage gateway web app for connecting multiple Google Drive account
 - Bearer token authentication.
 - Global Google OAuth config stored encrypted in DB (can be set via seed command or directly in Settings UI).
 - Automated system updates via `update.sh` directly from the Settings UI (PM2 setup).
-- Optional reCAPTCHA on email/password registration.
+- Admin-managed user accounts (no public registration).
 - PostgreSQL database with Prisma migrations (Neon-compatible).
 - Express + TypeScript backend.
 - React + Vite frontend.
-
-## Preview
-
-Live preview: https://9drive.zenhosta.com
-
-![Ithaca dashboard preview](https://i.ibb.co.com/HLjG3JRf/image.png)
-
-![Ithaca shared file preview](https://i.ibb.co.com/QLpYGmx/image.png)
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=zenhosta/9drive&type=Date)](https://www.star-history.com/#zenhosta/9drive&Date)
 
 ## Project Structure
 
@@ -52,7 +44,7 @@ frontend/  Vite React app
 ## Requirements
 
 - Node.js 20+
-- npm
+- pnpm 10 (pinned by the `packageManager` field in `backend/package.json` and `frontend/package.json`; enable with `corepack enable`)
 - PostgreSQL running locally, or a free [Neon](https://neon.com) project
 - Google Cloud project
 - Google OAuth Client ID and Client Secret
@@ -73,23 +65,26 @@ Install backend dependencies:
 
 ```bash
 cd backend
-npm install
+pnpm install
 ```
 
 Install frontend dependencies:
 
 ```bash
 cd ../frontend
-npm install
+pnpm install
 ```
 
 ## 2. Create Database
 
 Local Postgres:
+
 ```sql
 CREATE DATABASE ithaca;
 ```
+
 If using `psql` CLI:
+
 ```bash
 psql -U postgres -c "CREATE DATABASE ithaca;"
 ```
@@ -109,9 +104,8 @@ TOKEN_ENCRYPTION_KEY="change-this-encryption-key-32bytes!"
 ACCESS_TOKEN_TTL_SECONDS=900
 REFRESH_TOKEN_TTL_DAYS=30
 MAX_UPLOAD_BYTES=5368709120
-RECAPTCHA_SECRET_KEY=""
 
-# Used only by `npm run seed:google-config`.
+# Used only by `pnpm seed:google-config`.
 # These values are encrypted and stored in DB as global Google OAuth config.
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
@@ -131,22 +125,19 @@ Create or confirm `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:4000
-VITE_RECAPTCHA_SITE_KEY=
 ```
-
-Captcha is disabled when `VITE_RECAPTCHA_SITE_KEY` or backend `RECAPTCHA_SECRET_KEY` is empty. Set both values to enable captcha on registration.
 
 ## 5. Run Prisma Migrations
 
 ```bash
 cd backend
-npm run prisma:migrate
+pnpm prisma:migrate
 ```
 
 If Prisma client generation is blocked on Windows by a running Node process, stop running backend/frontend dev servers and run:
 
 ```bash
-npx prisma generate
+pnpm exec prisma generate
 ```
 
 ## 6. Google Cloud Setup
@@ -297,7 +288,7 @@ Then run:
 
 ```bash
 cd backend
-npm run seed:google-config
+pnpm seed:google-config
 ```
 
 This stores the Google OAuth config as a global encrypted provider config in the database. Google sign-in uses the same config and automatically connects the first Drive account. Logged-in users can still click `Connect Drive` in Settings to add more Drive accounts.
@@ -308,7 +299,7 @@ Start backend:
 
 ```bash
 cd backend
-npm run dev
+pnpm dev
 ```
 
 Backend runs at:
@@ -321,7 +312,7 @@ Start frontend:
 
 ```bash
 cd frontend
-npm run dev
+pnpm dev
 ```
 
 Frontend runs at:
@@ -393,7 +384,7 @@ adminer:  http://localhost:8081
 The backend container runs Prisma migrations automatically on startup:
 
 ```txt
-npm run db:migrate:deploy
+pnpm db:migrate:deploy
 ```
 
 This applies pending migrations such as S3 storage support before the API starts, so deployments from an older database can update safely without dropping data.
@@ -409,7 +400,7 @@ docker compose up -d --build
 Automatic Docker startup seeding is usually enough. If you update Google OAuth values while containers are already running, seed the global Google OAuth config manually:
 
 ```bash
-docker compose exec backend npm run seed:google-config
+docker compose exec backend pnpm seed:google-config
 ```
 
 This stores `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` from Docker env into the database as encrypted global config.
@@ -443,13 +434,13 @@ docker compose down -v
 - Do not expose the Postgres port publicly in production.
 - Put frontend/backend behind HTTPS reverse proxy.
 - Rebuild frontend when `VITE_API_URL` changes because Vite embeds env at build time.
-- Rebuild frontend when `VITE_RECAPTCHA_SITE_KEY` changes because Vite embeds env at build time.
 
 ### VPS Deployment (Step-by-Step)
 
 Follow these steps to deploy Ithaca to a VPS (such as Ubuntu/Debian) using Docker:
 
 #### 1. Install Docker & Docker Compose on your VPS
+
 ```bash
 sudo apt update
 sudo apt install -y docker.io docker-compose
@@ -457,36 +448,46 @@ sudo systemctl enable --now docker
 ```
 
 #### 2. Clone the Repository
+
 ```bash
 git clone https://github.com/your-github-username/ithaca.git
 cd ithaca
 ```
 
 #### 3. Setup the Production Environment
+
 Copy the example environment file to `.env`:
+
 ```bash
 cp .env.docker.example .env
 ```
+
 Edit the `.env` file (e.g., `nano .env`) and configure the values for your production VPS domain/IP:
-* **`FRONTEND_URL`**: Set to your public domain or VPS IP (e.g., `http://103.xxx.xxx.xxx:5173` or `https://ithaca.yourdomain.com`).
-* **`VITE_API_URL`**: Set to your public backend URL (e.g., `http://103.xxx.xxx.xxx:4000` or `https://api.ithaca.yourdomain.com`).
-* **`GOOGLE_REDIRECT_URI`**: Set to your public redirect callback URL (e.g., `http://103.xxx.xxx.xxx:4000/connected-accounts/google/callback`).
-* Set secure credentials for **`JWT_ACCESS_SECRET`** and **`TOKEN_ENCRYPTION_KEY`** (encryption key must be exactly 32 characters/bytes).
-* Add your **`GOOGLE_CLIENT_ID`** and **`GOOGLE_CLIENT_SECRET`**.
+
+- **`FRONTEND_URL`**: Set to your public domain or VPS IP (e.g., `http://103.xxx.xxx.xxx:5173` or `https://ithaca.yourdomain.com`).
+- **`VITE_API_URL`**: Set to your public backend URL (e.g., `http://103.xxx.xxx.xxx:4000` or `https://api.ithaca.yourdomain.com`).
+- **`GOOGLE_REDIRECT_URI`**: Set to your public redirect callback URL (e.g., `http://103.xxx.xxx.xxx:4000/connected-accounts/google/callback`).
+- Set secure credentials for **`JWT_ACCESS_SECRET`** and **`TOKEN_ENCRYPTION_KEY`** (encryption key must be exactly 32 characters/bytes).
+- Add your **`GOOGLE_CLIENT_ID`** and **`GOOGLE_CLIENT_SECRET`**.
 
 #### 4. Deploy the Containers
+
 Run Docker Compose to build and start the database, backend, and frontend containers in the background:
+
 ```bash
 docker compose up -d --build
 ```
 
 #### 5. Seed the Google Configuration
+
 Initialize the encrypted Google configuration in the database:
+
 ```bash
-docker compose exec backend npm run seed:google-config
+docker compose exec backend pnpm seed:google-config
 ```
 
 #### 6. Add Authorized URIs in Google Cloud Console
+
 1. Go to **APIs & Services** -> **Credentials** in the Google Cloud Console.
 2. Edit your OAuth 2.0 Web Client.
 3. In **Authorized JavaScript origins**, add your frontend URL (e.g., `http://your-vps-ip:5173` or `https://ithaca.yourdomain.com`).
@@ -498,9 +499,9 @@ docker compose exec backend npm run seed:google-config
 Instead of running Postgres yourself (local container or VPS), point `DATABASE_URL` at a [Neon](https://neon.com) project — a free-tier serverless Postgres host with instant branching, which pairs well with `main`/`dev` environment separation:
 
 1. Create a Neon project. It ships with a default `main`/`production` branch.
-2. Create a `dev` branch off it (Neon console, or `npx prisma migrate dev` locally against it) for pre-prod checks — each branch gets its own connection string, so `dev` and prod never collide.
+2. Create a `dev` branch off it (Neon console, or `pnpm exec prisma migrate dev` locally against it) for pre-prod checks — each branch gets its own connection string, so `dev` and prod never collide.
 3. Copy the branch's **pooled** connection string (`-pooler` in the hostname) into `DATABASE_URL`.
-4. Run `npm run db:migrate:deploy` against that URL to apply migrations, same as any other Postgres target.
+4. Run `pnpm db:migrate:deploy` against that URL to apply migrations, same as any other Postgres target.
 
 Neon's free tier: 0.5 GB storage and 10 branches per project, shared across branches — see [Neon's plan limits](https://neon.com/docs/introduction/plans) for current numbers.
 
@@ -510,18 +511,18 @@ Run production migrations before starting the backend:
 
 ```bash
 cd backend
-npm run db:migrate:deploy
-npm run start
+pnpm db:migrate:deploy
+pnpm start
 ```
 
 Or use the combined command:
 
 ```bash
 cd backend
-npm run start:deploy
+pnpm start:deploy
 ```
 
-`npm run db:migrate:deploy` uses Prisma production migrations and does not reset the database. If Prisma reports migration drift, stop the deploy and repair migration history first; do not run `prisma migrate reset` on production.
+`pnpm db:migrate:deploy` uses Prisma production migrations and does not reset the database. If Prisma reports migration drift, stop the deploy and repair migration history first; do not run `prisma migrate reset` on production.
 
 ## 8. Manual Test Flow
 
@@ -531,7 +532,7 @@ npm run start:deploy
 http://localhost:5173
 ```
 
-2. Register a user with email/password and captcha, or click `Continue with Google and connect Drive`.
+2. Sign in with an admin-created email/password account, or click `Continue with Google and connect Drive`.
 3. If using Google sign-in, approve Drive access once and confirm `/settings` already shows the connected account.
 4. If using email/password, open `Settings`, click `Connect Drive`, approve access, and confirm the account appears.
 5. Open `Quota Tracker`.
@@ -556,7 +557,6 @@ Delete
 Auth:
 
 ```txt
-POST /auth/register
 POST /auth/login
 GET /auth/google/url
 GET /auth/google/callback
@@ -636,7 +636,7 @@ file
 - Refresh tokens for app sessions are hashed in the database.
 - Google auth handoff tokens, public share tokens, and preview tokens are hashed before lookup/use.
 - `backend/.env` is ignored by git.
-- Do not expose `TOKEN_ENCRYPTION_KEY`, `JWT_ACCESS_SECRET`, `RECAPTCHA_SECRET_KEY`, OAuth client secrets, or raw share/preview/handoff tokens.
+- Do not expose `TOKEN_ENCRYPTION_KEY`, `JWT_ACCESS_SECRET`, OAuth client secrets, or raw share/preview/handoff tokens.
 
 ## Production Notes
 
@@ -650,7 +650,8 @@ file
 
 ## Google OAuth Configuration via UI
 
-Instead of seeding Google credentials manually using `npm run seed:google-config`, you can set them up directly from the frontend dashboard:
+Instead of seeding Google credentials manually using `pnpm seed:google-config`, you can set them up directly from the frontend dashboard:
+
 1. Log in to the dashboard.
 2. Go to **Settings** -> **Google Credentials**.
 3. Input your **Google Client ID**, **Google Client Secret**, and **Redirect URI** (e.g. `https://103.65.237.136.nip.io:4000/connected-accounts/google/callback`).
@@ -663,6 +664,7 @@ The config is automatically encrypted and saved into the database, enabling Goog
 For native VPS setups running with PM2, Ithaca includes a fully automated system update trigger and log monitor in the **Settings** UI.
 
 ### How it works
+
 1. When you trigger an update from the frontend dashboard, the backend triggers the `update.sh` script in the background.
 2. The script:
    - Resets any local Git conflicts (`git reset --hard`) and pulls the latest changes.
@@ -672,16 +674,20 @@ For native VPS setups running with PM2, Ithaca includes a fully automated system
 3. You can monitor the real-time rebuild progress using the log viewer inside the Settings UI.
 
 ### Manual update command
+
 If you want to update manually via the terminal, run:
+
 ```bash
 ./update.sh
 ```
+
 Or run the commands individually:
+
 ```bash
 git reset --hard
 git pull origin main
-cd backend && npm install && npx prisma generate && npm run build && npx prisma migrate deploy
-cd ../frontend && npm install && npm run build
+cd backend && pnpm install && pnpm exec prisma generate && pnpm build && pnpm exec prisma migrate deploy
+cd ../frontend && pnpm install && pnpm build
 pm2 restart ithaca-backend
 ```
 
@@ -691,12 +697,12 @@ Backend:
 
 ```bash
 cd backend
-npm run build
+pnpm build
 ```
 
 Frontend:
 
 ```bash
 cd frontend
-npm run build
+pnpm build
 ```

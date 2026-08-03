@@ -2,12 +2,13 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "dist/server.js",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "postinstall": "prisma generate",
     "build": "tsc",
     "start": "node dist/server.js",
-    "start:deploy": "npm run db:migrate:deploy && node dist/server.js",
+    "start:deploy": "pnpm db:migrate:deploy && node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
@@ -21,6 +22,15 @@
     "format": "prettier --write ."
   },
   "keywords": [],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "argon2",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "author": "",
   "license": "ISC",
   "description": "",
