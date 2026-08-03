@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import contentDisposition from 'content-disposition';
 import { env } from '../../config/env.js';
 
 export type StreamDisposition = 'inline' | 'attachment';
@@ -27,10 +28,6 @@ function isInlineSafe(mimeType: string) {
   return INLINE_SAFE_EXACT.has(type) || INLINE_SAFE_PREFIXES.some((p) => type.startsWith(p));
 }
 
-function contentDisposition(type: StreamDisposition, fileName: string) {
-  return `${type}; filename="${fileName.replaceAll('"', '')}"`;
-}
-
 /**
  * Sets Content-Type/Disposition plus the anti-XSS headers for a provider file stream.
  * Downgrades `inline` to `attachment` for any type a browser might execute.
@@ -54,5 +51,9 @@ export function applyStreamHeaders(
   if (!disposition) return;
   const effective: StreamDisposition =
     disposition === 'inline' && !isInlineSafe(file.mimeType) ? 'attachment' : disposition;
-  res.setHeader('Content-Disposition', contentDisposition(effective, file.fileName));
+  // Express's own header builder (RFC 6266): emits an ASCII-only `filename` for legacy
+  // agents plus an RFC 5987 `filename*` carrying the real name. Interpolating the name
+  // directly instead makes res.setHeader throw ERR_INVALID_CHAR on any code unit above
+  // U+00FF, which took out every download of a CJK/emoji/Cyrillic-named file.
+  res.setHeader('Content-Disposition', contentDisposition(file.fileName, { type: effective }));
 }
