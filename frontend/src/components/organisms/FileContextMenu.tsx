@@ -141,7 +141,7 @@ export function FileContextMenu({
                 {file.name}
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-1">
-                <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground dark:bg-slate-700 dark:text-muted-foreground">
+                <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-foreground dark:bg-slate-700 dark:text-muted-foreground">
                   {file.size}
                 </span>
                 {file.folderName && (

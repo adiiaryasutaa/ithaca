@@ -442,7 +442,7 @@ export function AllFilesPage() {
           </p>
         ) : null}
         {files.length === 0 && folders.length === 0 ? (
-          <EmptyState className="mt-3 dark:p-0" message={emptyMessage} />
+          <EmptyState className="mt-3" message={emptyMessage} />
         ) : (
           <Card className="mt-3 min-w-0 overflow-x-auto p-0 bg-card dark:bg-transparent dark:shadow-none">
             <FileTable
