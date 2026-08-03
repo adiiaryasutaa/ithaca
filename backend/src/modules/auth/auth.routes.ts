@@ -105,6 +105,12 @@ authRouter.get('/google/callback', async (req, res) => {
     const providerAccountId = profile.data.id;
     if (!providerAccountId || !profile.data.email)
       return res.redirect(`${env.FRONTEND_URL}/google-auth?status=error`);
+    // The email address is the only thing that maps this Google identity onto an Ithaca
+    // account below, so an unverified one is an impersonation vector: a Google account can
+    // be created against an arbitrary non-Gmail address, and `verified_email` is the only
+    // evidence ownership was ever proven. Fail closed — v2 userinfo always returns it.
+    if (profile.data.verified_email !== true)
+      return res.redirect(`${env.FRONTEND_URL}/google-auth?status=unverified_email`);
     const email = normalizeEmail(profile.data.email);
 
     // Registration is admin-only: Google login authenticates existing users, it never

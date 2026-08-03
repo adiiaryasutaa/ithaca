@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import { env } from '../../config/env.js';
 
 export type StreamDisposition = 'inline' | 'attachment';
 
@@ -42,7 +43,14 @@ export function applyStreamHeaders(
   res.setHeader('Content-Type', file.mimeType);
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+  // Overwrites helmet's CSP for this response, so it has to restate frame-ancestors —
+  // helmet's copy is gone once this header is set, and app.ts disables X-Frame-Options,
+  // which would otherwise be the fallback. Same allowlist helmet uses, so the SPA can
+  // still <iframe> a PDF preview.
+  res.setHeader(
+    'Content-Security-Policy',
+    `sandbox; default-src 'none'; frame-ancestors 'self' ${env.FRONTEND_URL}`,
+  );
   if (!disposition) return;
   const effective: StreamDisposition =
     disposition === 'inline' && !isInlineSafe(file.mimeType) ? 'attachment' : disposition;
