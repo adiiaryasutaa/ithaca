@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
+import { Input } from '@/components/ui/input';
 
 export type SearchFilters = {
   kind: string;
@@ -78,23 +79,23 @@ export function SearchFilterPanel({
           />
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Date Range
           </label>
           <div className="mt-1 flex items-center gap-2">
-            <input
+            <Input
               type="date"
+              className="flex-1"
               value={filters.startDate}
               onChange={(e) => set('startDate', e.target.value)}
-              className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
             />
             <span className="text-muted-foreground text-xs font-semibold">to</span>
-            <input
+            <Input
               type="date"
+              className="flex-1"
               value={filters.endDate}
               onChange={(e) => set('endDate', e.target.value)}
-              className="block w-full rounded-sm border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:bg-card focus:outline-none"
             />
           </div>
         </div>

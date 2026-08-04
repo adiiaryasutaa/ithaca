@@ -4,6 +4,7 @@ import {
   Braces,
   FileArchive,
   Gauge,
+  HardDrive,
   History,
   LogOut,
   MoreVertical,
@@ -16,6 +17,8 @@ import {
   Users,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/atoms/BrandLogo';
+import { Card } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,6 +130,35 @@ export function AppSidebar({
     if (isMobile) setOpenMobile(false);
   }
 
+  const storageBreakdown = (
+    <>
+      <div className="space-y-1.5">
+        {items.map(([label, value, color]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between text-muted-foreground font-medium"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className={cn('h-1.5 w-1.5 rounded-full', color)} />
+              {label}
+            </span>
+            <span className="font-semibold text-foreground">{value}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between text-sm font-bold text-foreground">
+        <span>{formatBytes(storage?.usedBytes)} used</span>
+        <span className="text-muted-foreground">{formatBytes(storage?.totalBytes)}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </>
+  );
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -189,34 +221,18 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        {!collapsed ? (
-          <div className="space-y-2 px-1 pb-1 text-[13px]">
-            <div className="space-y-1.5">
-              {items.map(([label, value, color]) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between text-muted-foreground font-medium"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className={cn('h-1.5 w-1.5 rounded-full', color)} />
-                    {label}
-                  </span>
-                  <span className="font-semibold text-foreground">{value}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-sm font-bold text-foreground">
-              <span>{formatBytes(storage?.usedBytes)} used</span>
-              <span className="text-muted-foreground">{formatBytes(storage?.totalBytes)}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        ) : null}
+        {collapsed ? (
+          <Popover>
+            <PopoverTrigger className="mx-auto flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground">
+              <HardDrive className="h-4 w-4" />
+            </PopoverTrigger>
+            <PopoverContent side="right" align="end" className="w-64 gap-2 p-3 text-[13px]">
+              {storageBreakdown}
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Card className="gap-2 p-3 text-[13px]">{storageBreakdown}</Card>
+        )}
 
         <SidebarMenu>
           <SidebarMenuItem>
