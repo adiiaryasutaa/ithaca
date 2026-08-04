@@ -301,7 +301,10 @@ export async function deleteGoogleDriveItem(account: ConnectedAccount, providerF
 }
 
 // Mirrors files/stream-google-file.ts's googleDownloadExportMimeTypes (the non-preview variant).
-// Duplicated here until Stage 5 consolidates provider file streaming into one dispatcher.
+// Kept as a separate table deliberately: streamGoogleFile (direct download/preview, used by
+// GET /:id/download and /preview/:token) also has a preview-only override for spreadsheets
+// that this fetcher's batch-download caller doesn't need, so unifying the tables would either
+// bleed that override into batch-download or need a variant flag threaded through both call sites.
 const driveDownloadExportMimeTypes: Record<string, { mimeType: string; extension: string }> = {
   'application/vnd.google-apps.document': { mimeType: 'application/pdf', extension: '.pdf' },
   'application/vnd.google-apps.spreadsheet': {

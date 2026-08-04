@@ -94,6 +94,19 @@ export async function syncS3Quota(accountId: string) {
   });
 }
 
+export async function fetchS3FileStream(file: FileWithAccount) {
+  const config = await getS3ConfigForAccount(file.connectedAccountId);
+  const client = createS3Client(config);
+  const response = await client.send(
+    new GetObjectCommand({ Bucket: config.bucket, Key: file.providerFileId }),
+  );
+  return {
+    stream: response.Body as Readable,
+    fileName: file.name,
+    mimeType: response.ContentType ?? file.mimeType,
+  };
+}
+
 export async function streamS3File(
   file: FileWithAccount,
   range: string | undefined,
