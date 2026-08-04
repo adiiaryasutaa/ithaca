@@ -300,6 +300,20 @@ export async function deleteGoogleDriveItem(account: ConnectedAccount, providerF
   await drive.files.delete({ fileId: providerFileId });
 }
 
+export async function createGoogleDriveFolder(
+  account: ConnectedAccount,
+  name: string,
+  parentId: string,
+): Promise<string | null> {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  const driveFolder = await drive.files.create({
+    requestBody: { name, mimeType: googleDriveFolderMimeType, parents: [parentId] },
+    fields: 'id',
+  });
+  return driveFolder.data.id ?? null;
+}
+
 // Mirrors files/stream-google-file.ts's googleDownloadExportMimeTypes (the non-preview variant).
 // Kept as a separate table deliberately: streamGoogleFile (direct download/preview, used by
 // GET /:id/download and /preview/:token) also has a preview-only override for spreadsheets
