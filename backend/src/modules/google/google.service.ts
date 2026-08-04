@@ -300,6 +300,24 @@ export async function deleteGoogleDriveItem(account: ConnectedAccount, providerF
   await drive.files.delete({ fileId: providerFileId });
 }
 
+export async function uploadGoogleDriveFile(
+  account: ConnectedAccount,
+  params: { fileName: string; mimeType: string; parentId: string; body: NodeJS.ReadableStream },
+): Promise<{ id: string; name: string; mimeType: string }> {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  const uploaded = await drive.files.create({
+    requestBody: { name: params.fileName, parents: [params.parentId] },
+    media: { mimeType: params.mimeType, body: params.body },
+    fields: 'id,name,mimeType,size',
+  });
+  return {
+    id: uploaded.data.id ?? '',
+    name: uploaded.data.name ?? params.fileName,
+    mimeType: uploaded.data.mimeType ?? params.mimeType,
+  };
+}
+
 export async function createGoogleDriveFolder(
   account: ConnectedAccount,
   name: string,

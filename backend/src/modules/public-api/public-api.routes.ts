@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireApiKey, type ApiKeyRequest } from '../../middleware/api-key.middleware.js';
-import { handleUpload } from '../uploads/upload.routes.js';
+import { handleUpload } from '../uploads/upload.controller.js';
 import { prisma } from '../../config/prisma.js';
 import { streamProviderFile } from '../files/stream-file.js';
 
