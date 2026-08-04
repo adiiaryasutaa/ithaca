@@ -92,6 +92,30 @@ export async function createOAuthState(data: {
   return prisma.oauthState.create({ data });
 }
 
+export async function findGoogleConnectedAccountByProviderAccountId(providerAccountId: string) {
+  return prisma.connectedAccount.findUnique({
+    where: { provider_providerAccountId: { provider: 'google_drive', providerAccountId } },
+  });
+}
+
+export async function findOAuthStateByHash(stateHash: string) {
+  return prisma.oauthState.findUniqueOrThrow({
+    where: { stateHash },
+    include: { providerConfig: true },
+  });
+}
+
+export async function markOAuthStateUsed(id: string, userId?: string) {
+  return prisma.oauthState.update({
+    where: { id },
+    data: { usedAt: new Date(), userId },
+  });
+}
+
+export async function createAuthHandoff(userId: string, tokenHash: string, expiresAt: Date) {
+  return prisma.authHandoff.create({ data: { userId, tokenHash, expiresAt } });
+}
+
 export async function upsertGoogleConnectedAccount(params: {
   userId: string;
   providerConfigId: string;
