@@ -44,7 +44,9 @@ Important files:
 - `backend/prisma/schema.prisma`: database schema.
 - `backend/src/middleware/auth.middleware.ts`: bearer auth.
 - `backend/src/middleware/error.middleware.ts`: JSON error responses.
-- `backend/src/modules/**`: feature route modules and provider services.
+- `backend/src/middleware/async-handler.ts`: wraps route handlers so a rejected promise reaches `error.middleware.ts` without a per-handler `try/catch`.
+- `backend/src/utils/http-error.ts`: `HttpError(status, code, message)` — the exception type service layers throw for expected failures; `error.middleware.ts` maps it straight to its `status`/`code`/`message`.
+- `backend/src/modules/**`: feature modules, each layered `<feature>.routes.ts` → `.controller.ts` → `.service.ts` → `.repository.ts` (see Backend conventions below), plus provider services (`google/`, `s3/`).
 - `backend/src/modules/files/stream-google-file.ts`: Google file preview/download streaming.
 - `backend/src/scripts/seed-google-config.ts`: stores encrypted global Google OAuth config.
 
@@ -73,15 +75,23 @@ Environment:
 
 Backend conventions:
 
-- Put route logic under `backend/src/modules/<feature>/<feature>.routes.ts`.
+- Layer new backend features across four files under `backend/src/modules/<feature>/`:
+  - `<feature>.routes.ts` — `Router()` + middleware wiring only; every handler wrapped in `asyncHandler(...)`.
+  - `<feature>.controller.ts` — Zod-parses `req.params`/`query`/`body`, calls the service, shapes the HTTP response (status code, JSON body).
+  - `<feature>.service.ts` — business logic and orchestration; throws `HttpError` for expected failures; never imports Express `Request`/`Response`/`NextFunction`.
+  - `<feature>.repository.ts` — Prisma calls only, module-private (not imported by other modules); returns raw data, bigint/Date untouched.
+  - Provider/infra modules with no mounted router (`google/`, `s3/`, `storage/`'s routing-policy/quota-sync) get `service.ts`(+`repository.ts`) only — no `routes.ts`/`controller.ts`.
+  - Cross-module imports target a module's `service.ts` exclusively, never its `controller.ts`/`repository.ts` — this is what lets one module's internal layering change without rippling into another module's import paths.
+  - A repository query only needs to be centralized cross-module when it encapsulates real logic beyond one static-shape Prisma call; a trivial existence check may legitimately live in more than one module's own `repository.ts`.
+  - Domain-specific helpers shared by 2+ modules are homed in whichever module owns the underlying entity/provider (e.g. Google Drive operations in `google/google.service.ts`, quota-sync dispatch in `storage/quota-sync.service.ts`) — never a generic `shared/` directory.
 - Mount new routers in `backend/src/app.ts`.
 - Use `requireAuth` for authenticated routes.
 - Use `AuthRequest` when accessing `req.user`.
 - Validate request bodies/query params with Zod.
 - Use Prisma from `backend/src/config/prisma.ts`.
-- Return JSON errors with stable `code` and human-readable `message`.
-- Pass unexpected errors to `next(error)`.
-- Convert `bigint` values to strings before sending JSON responses.
+- Return JSON errors with stable `code` and human-readable `message` — throw `HttpError` from a service rather than constructing the response inline in a controller.
+- Unexpected errors reach `next(error)` automatically via `asyncHandler` — no per-handler `try/catch` needed.
+- Convert `bigint` values to strings before sending JSON responses (`backend/src/utils/serialize.ts`'s `bigintToString`, or a module's own `to*Response` serializer).
 - Keep Google-specific OAuth/Drive behavior in provider modules/services when possible.
 - Keep public-token routes outside `requireAuth`; verify token hash, status, and expiry before streaming/returning data.
 - Google sign-in uses one-time auth handoff tokens; never send app access/refresh tokens through URL query params.
