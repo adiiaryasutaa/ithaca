@@ -31,6 +31,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -42,17 +43,6 @@ import { formatBytes } from '@/lib/api';
 import type { AuthUser } from '@/lib/auth';
 import { getGravatarUrl } from '@/lib/gravatar';
 import { cn } from '@/lib/utils';
-
-const menu = [
-  { label: 'All Files', icon: FileArchive, href: '/all-files' },
-  { label: 'Quota Tracker', icon: Gauge, href: '/quota' },
-  { label: 'Shared With Me', icon: Share2, href: '/shared' },
-  { label: 'Starred', icon: Star, href: '/starred', disabled: true },
-  { label: 'Recycle Bin', icon: Trash2, href: '/trash' },
-  { label: 'Activity Log', icon: History, href: '/activity' },
-  { label: 'Setting', icon: Settings, href: '/settings' },
-  { label: 'API Keys', icon: Braces, href: '/api' },
-];
 
 export type StorageSummary = {
   totalBytes: string;
@@ -130,6 +120,33 @@ export function AppSidebar({
     if (isMobile) setOpenMobile(false);
   }
 
+  const menuGroups = [
+    {
+      label: 'Files',
+      items: [
+        { label: 'All Files', icon: FileArchive, href: '/all-files' },
+        { label: 'Shared With Me', icon: Share2, href: '/shared' },
+        { label: 'Starred', icon: Star, href: '/starred', disabled: true },
+        { label: 'Recycle Bin', icon: Trash2, href: '/trash' },
+      ],
+    },
+    {
+      label: 'Insights',
+      items: [
+        { label: 'Quota Tracker', icon: Gauge, href: '/quota' },
+        { label: 'Activity Log', icon: History, href: '/activity' },
+      ],
+    },
+    {
+      label: 'Admin',
+      items: [
+        { label: 'Setting', icon: Settings, href: '/settings' },
+        { label: 'API Keys', icon: Braces, href: '/api' },
+        ...(user?.role === 'admin' ? [{ label: 'Users', icon: Users, href: '/users' }] : []),
+      ],
+    },
+  ];
+
   const storageBreakdown = (
     <>
       <div className="space-y-1.5">
@@ -179,45 +196,36 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menu.map((item) =>
-                item.disabled ? (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton disabled tooltip={item.label}>
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton
-                      isActive={location.pathname === item.href}
-                      tooltip={item.label}
-                      render={<NavLink to={item.href} onClick={closeMobileOnNavigate} />}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ),
-              )}
-              {user?.role === 'admin' ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={location.pathname === '/users'}
-                    tooltip="Users"
-                    render={<NavLink to="/users" onClick={closeMobileOnNavigate} />}
-                  >
-                    <Users className="h-4 w-4 shrink-0" />
-                    <span>Users</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ) : null}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) =>
+                  item.disabled ? (
+                    <SidebarMenuItem key={item.label}>
+                      <SidebarMenuButton disabled tooltip={item.label}>
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ) : (
+                    <SidebarMenuItem key={item.label}>
+                      <SidebarMenuButton
+                        isActive={location.pathname === item.href}
+                        tooltip={item.label}
+                        render={<NavLink to={item.href} onClick={closeMobileOnNavigate} />}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ),
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter>
