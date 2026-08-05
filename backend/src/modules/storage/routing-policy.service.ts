@@ -1,4 +1,4 @@
-import { prisma } from '../../config/prisma.js';
+import * as routingPolicyRepository from './routing-policy.repository.js';
 
 /**
  * Ithaca is a single shared workspace, so there is one routing policy row for the
@@ -6,10 +6,12 @@ import { prisma } from '../../config/prisma.js';
  * owner column the first time the singleton is created.
  */
 export async function getOrCreateRoutingPolicy(createdByUserId: string) {
-  const existing = await prisma.uploadRoutingPolicy.findFirst({ orderBy: { createdAt: 'asc' } });
+  const existing = await routingPolicyRepository.findFirstRoutingPolicy();
   if (existing) return existing;
-  return prisma.uploadRoutingPolicy.create({
-    data: { userId: createdByUserId, mode: 'most_available', priorityAccountIds: [] },
+  return routingPolicyRepository.createRoutingPolicy({
+    userId: createdByUserId,
+    mode: 'most_available',
+    priorityAccountIds: [],
   });
 }
 

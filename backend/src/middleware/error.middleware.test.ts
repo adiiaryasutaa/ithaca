@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { errorMiddleware } from './error.middleware.js';
+import { HttpError } from '../utils/http-error.js';
 
 function mockRes() {
   const res = {
@@ -22,6 +23,16 @@ function getZodError() {
 }
 
 describe('errorMiddleware', () => {
+  it('maps HttpError to its own status/code/message', () => {
+    const res = mockRes();
+    errorMiddleware(new HttpError(404, 'FOLDER_NOT_FOUND', 'Folder not found.'), req, res, next);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json.mock.calls[0][0]).toEqual({
+      code: 'FOLDER_NOT_FOUND',
+      message: 'Folder not found.',
+    });
+  });
+
   it('maps ZodError to 400 VALIDATION_ERROR with issues', () => {
     const res = mockRes();
     errorMiddleware(getZodError(), req, res, next);

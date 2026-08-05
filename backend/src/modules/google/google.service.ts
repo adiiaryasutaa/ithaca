@@ -1,10 +1,25 @@
 import { google } from 'googleapis';
 import type { ConnectedAccount, ProviderConfig } from '@prisma/client';
-import { prisma } from '../../config/prisma.js';
-import { decryptText, encryptText } from '../../utils/crypto.js';
+import { decryptText, encryptText, hashToken, randomToken } from '../../utils/crypto.js';
+import {
+  createOAuthState,
+  createSyncedGoogleFile,
+  findConnectedAccountById,
+  findConnectedGoogleAccountById,
+  findGoogleFilesForAccount,
+  findProviderConfigById,
+  findWorkspaceFoldersForAccount,
+  markFilesDeleted,
+  updateConnectedAccountTokens,
+  updateSyncedGoogleFile,
+  upsertStorageAccountQuota,
+} from './google.repository.js';
 
 const googleDriveFolderMimeType = 'application/vnd.google-apps.folder';
 const appFolderName = 'Ithaca';
+
+export type GoogleAuthClient = ReturnType<typeof createOAuthClient>;
+export type GoogleDriveClient = ReturnType<typeof google.drive>;
 
 export function createOAuthClient(config: ProviderConfig) {
   return new google.auth.OAuth2(
@@ -18,9 +33,7 @@ export async function getAuthedGoogleClient(account: ConnectedAccount) {
   if (!account.accessTokenEncrypted || !account.refreshTokenEncrypted || !account.tokenExpiresAt)
     throw new Error('Google account tokens are missing.');
   if (!account.providerConfigId) throw new Error('Google provider config is missing.');
-  const config = await prisma.providerConfig.findUniqueOrThrow({
-    where: { id: account.providerConfigId },
-  });
+  const config = await findProviderConfigById(account.providerConfigId);
   const client = createOAuthClient(config);
   client.setCredentials({
     access_token: decryptText(account.accessTokenEncrypted),
@@ -32,12 +45,9 @@ export async function getAuthedGoogleClient(account: ConnectedAccount) {
     const result = await client.refreshAccessToken();
     const credentials = result.credentials;
     if (credentials.access_token) {
-      await prisma.connectedAccount.update({
-        where: { id: account.id },
-        data: {
-          accessTokenEncrypted: encryptText(credentials.access_token),
-          tokenExpiresAt: new Date(credentials.expiry_date ?? Date.now() + 3600_000),
-        },
+      await updateConnectedAccountTokens(account.id, {
+        accessTokenEncrypted: encryptText(credentials.access_token),
+        tokenExpiresAt: new Date(credentials.expiry_date ?? Date.now() + 3600_000),
       });
       client.setCredentials(credentials);
     }
@@ -47,30 +57,18 @@ export async function getAuthedGoogleClient(account: ConnectedAccount) {
 }
 
 export async function syncGoogleQuota(accountId: string) {
-  const account = await prisma.connectedAccount.findUniqueOrThrow({ where: { id: accountId } });
+  const account = await findConnectedAccountById(accountId);
   const auth = await getAuthedGoogleClient(account);
   const drive = google.drive({ version: 'v3', auth });
   const about = await drive.about.get({ fields: 'storageQuota,user' });
   const quota = about.data.storageQuota;
   const total = quota?.limit ? BigInt(quota.limit) : null;
   const used = quota?.usage ? BigInt(quota.usage) : 0n;
-  return prisma.storageAccount.upsert({
-    where: { connectedAccountId: accountId },
-    create: {
-      connectedAccountId: accountId,
-      totalBytes: total,
-      usedBytes: used,
-      availableBytes: total === null ? null : total - used,
-      trashBytes: quota?.usageInDriveTrash ? BigInt(quota.usageInDriveTrash) : null,
-      lastSyncedAt: new Date(),
-    },
-    update: {
-      totalBytes: total,
-      usedBytes: used,
-      availableBytes: total === null ? null : total - used,
-      trashBytes: quota?.usageInDriveTrash ? BigInt(quota.usageInDriveTrash) : null,
-      lastSyncedAt: new Date(),
-    },
+  return upsertStorageAccountQuota(accountId, {
+    totalBytes: total,
+    usedBytes: used,
+    availableBytes: total === null ? null : total - used,
+    trashBytes: quota?.usageInDriveTrash ? BigInt(quota.usageInDriveTrash) : null,
   });
 }
 
@@ -124,17 +122,12 @@ export async function syncGoogleAppFolderFiles(
   accountId: string,
   createdByUserId: string,
 ): Promise<GoogleAppFolderSyncResult> {
-  const account = await prisma.connectedAccount.findFirstOrThrow({
-    where: { id: accountId, provider: 'google_drive', status: 'connected' },
-  });
+  const account = await findConnectedGoogleAccountById(accountId);
   const auth = await getAuthedGoogleClient(account);
   const drive = google.drive({ version: 'v3', auth });
   const appFolderId = await ensureGoogleAppFolder(account);
 
-  const workspaceFolders = await prisma.folder.findMany({
-    where: { connectedAccountId: account.id, deletedAt: null },
-    select: { id: true, providerFolderId: true },
-  });
+  const workspaceFolders = await findWorkspaceFoldersForAccount(account.id);
   const parentIds = [
     appFolderId,
     ...workspaceFolders.map((f) => f.providerFolderId).filter((id): id is string => !!id),
@@ -168,9 +161,7 @@ export async function syncGoogleAppFolderFiles(
     pageToken = response.data.nextPageToken ?? undefined;
   } while (pageToken);
 
-  const existingFiles = await prisma.file.findMany({
-    where: { connectedAccountId: account.id, provider: 'google_drive' },
-  });
+  const existingFiles = await findGoogleFilesForAccount(account.id);
   const existingByProviderId = new Map(existingFiles.map((file) => [file.providerFileId, file]));
   const driveFileIds = new Set(driveFiles.map((file) => file.id));
   let created = 0;
@@ -184,18 +175,14 @@ export async function syncGoogleAppFolderFiles(
       driveFile.parentId === appFolderId ? null : (folderIdMap.get(driveFile.parentId) ?? null);
     const existing = existingByProviderId.get(driveFile.id);
     if (!existing) {
-      await prisma.file.create({
-        data: {
-          userId: createdByUserId,
-          connectedAccountId: account.id,
-          provider: 'google_drive',
-          providerFileId: driveFile.id,
-          name: driveFile.name,
-          mimeType: driveFile.mimeType,
-          sizeBytes: driveFile.sizeBytes,
-          status: 'active',
-          folderId: dbFolderId,
-        },
+      await createSyncedGoogleFile({
+        userId: createdByUserId,
+        connectedAccountId: account.id,
+        providerFileId: driveFile.id,
+        name: driveFile.name,
+        mimeType: driveFile.mimeType,
+        sizeBytes: driveFile.sizeBytes,
+        folderId: dbFolderId,
       });
       created += 1;
       continue;
@@ -209,16 +196,11 @@ export async function syncGoogleAppFolderFiles(
       existing.deletedAt !== null ||
       existing.folderId !== dbFolderId;
     if (needsUpdate) {
-      await prisma.file.update({
-        where: { id: existing.id },
-        data: {
-          name: driveFile.name,
-          mimeType: driveFile.mimeType,
-          sizeBytes: driveFile.sizeBytes,
-          status: 'active',
-          deletedAt: null,
-          folderId: dbFolderId,
-        },
+      await updateSyncedGoogleFile(existing.id, {
+        name: driveFile.name,
+        mimeType: driveFile.mimeType,
+        sizeBytes: driveFile.sizeBytes,
+        folderId: dbFolderId,
       });
       updated += 1;
     }
@@ -228,13 +210,159 @@ export async function syncGoogleAppFolderFiles(
     .filter((file) => file.status === 'active' && !driveFileIds.has(file.providerFileId))
     .map((file) => file.id);
   if (missingActiveIds.length > 0) {
-    const result = await prisma.file.updateMany({
-      where: { id: { in: missingActiveIds } },
-      data: { status: 'deleted', deletedAt: new Date() },
-    });
+    const result = await markFilesDeleted(missingActiveIds);
     deleted = result.count;
   }
 
   await syncGoogleQuota(account.id).catch(() => undefined);
   return { accountId: account.id, created, updated, deleted };
+}
+
+export async function exchangeGoogleOAuthCode(config: ProviderConfig, code: string) {
+  const client = createOAuthClient(config);
+  const tokenResult = await client.getToken(code);
+  const tokens = tokenResult.tokens;
+  client.setCredentials(tokens);
+  const oauth2 = google.oauth2({ version: 'v2', auth: client });
+  const profile = await oauth2.userinfo.get();
+  return {
+    tokens,
+    profile: {
+      providerAccountId: profile.data.id,
+      email: profile.data.email,
+      name: profile.data.name,
+      picture: profile.data.picture,
+      verifiedEmail: profile.data.verified_email,
+    },
+  };
+}
+
+export async function createGoogleAuthUrl(params: {
+  config: ProviderConfig;
+  flow: string;
+  userId?: string;
+}) {
+  const state = randomToken();
+  await createOAuthState({
+    providerConfigId: params.config.id,
+    flow: params.flow,
+    stateHash: hashToken(state),
+    expiresAt: new Date(Date.now() + 10 * 60_000),
+    userId: params.userId,
+  });
+  const client = createOAuthClient(params.config);
+  return client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    include_granted_scopes: true,
+    scope: params.config.scopes as string[],
+    state,
+  });
+}
+
+export async function makeGoogleFilePublic(drive: GoogleDriveClient, fileId: string) {
+  await drive.permissions.create({
+    fileId,
+    requestBody: { role: 'writer', type: 'anyone' },
+  });
+}
+
+export async function renameGoogleFolder(
+  account: ConnectedAccount,
+  providerFolderId: string,
+  name: string,
+) {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  await drive.files.update({ fileId: providerFolderId, requestBody: { name } });
+}
+
+export async function moveGoogleFolder(
+  account: ConnectedAccount,
+  providerFolderId: string,
+  newParentId: string,
+) {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  const fileInfo = await drive.files.get({ fileId: providerFolderId, fields: 'parents' });
+  const previousParents = fileInfo.data.parents?.join(',');
+  await drive.files.update({
+    fileId: providerFolderId,
+    addParents: newParentId,
+    removeParents: previousParents,
+    fields: 'id, parents',
+  });
+}
+
+export async function deleteGoogleDriveItem(account: ConnectedAccount, providerFileId: string) {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  await drive.files.delete({ fileId: providerFileId });
+}
+
+export async function uploadGoogleDriveFile(
+  account: ConnectedAccount,
+  params: { fileName: string; mimeType: string; parentId: string; body: NodeJS.ReadableStream },
+): Promise<{ id: string; name: string; mimeType: string }> {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  const uploaded = await drive.files.create({
+    requestBody: { name: params.fileName, parents: [params.parentId] },
+    media: { mimeType: params.mimeType, body: params.body },
+    fields: 'id,name,mimeType,size',
+  });
+  return {
+    id: uploaded.data.id ?? '',
+    name: uploaded.data.name ?? params.fileName,
+    mimeType: uploaded.data.mimeType ?? params.mimeType,
+  };
+}
+
+export async function createGoogleDriveFolder(
+  account: ConnectedAccount,
+  name: string,
+  parentId: string,
+): Promise<string | null> {
+  const auth = await getAuthedGoogleClient(account);
+  const drive = google.drive({ version: 'v3', auth });
+  const driveFolder = await drive.files.create({
+    requestBody: { name, mimeType: googleDriveFolderMimeType, parents: [parentId] },
+    fields: 'id',
+  });
+  return driveFolder.data.id ?? null;
+}
+
+// Mirrors files/stream-google-file.ts's googleDownloadExportMimeTypes (the non-preview variant).
+// Kept as a separate table deliberately: streamGoogleFile (direct download/preview, used by
+// GET /:id/download and /preview/:token) also has a preview-only override for spreadsheets
+// that this fetcher's batch-download caller doesn't need, so unifying the tables would either
+// bleed that override into batch-download or need a variant flag threaded through both call sites.
+const driveDownloadExportMimeTypes: Record<string, { mimeType: string; extension: string }> = {
+  'application/vnd.google-apps.document': { mimeType: 'application/pdf', extension: '.pdf' },
+  'application/vnd.google-apps.spreadsheet': {
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    extension: '.xlsx',
+  },
+  'application/vnd.google-apps.presentation': { mimeType: 'application/pdf', extension: '.pdf' },
+  'application/vnd.google-apps.drawing': { mimeType: 'image/png', extension: '.png' },
+};
+
+function withFileExtension(fileName: string, extension: string) {
+  return fileName.toLowerCase().endsWith(extension) ? fileName : `${fileName}${extension}`;
+}
+
+export async function fetchGoogleFileStream(
+  account: ConnectedAccount,
+  file: { providerFileId: string; name: string; mimeType: string },
+) {
+  const auth = await getAuthedGoogleClient(account);
+  const authHeaders = await auth.getRequestHeaders();
+  const exportTarget = driveDownloadExportMimeTypes[file.mimeType];
+  const fileName = exportTarget ? withFileExtension(file.name, exportTarget.extension) : file.name;
+  const mimeType = exportTarget?.mimeType ?? file.mimeType;
+  const url = exportTarget
+    ? `https://www.googleapis.com/drive/v3/files/${file.providerFileId}/export?mimeType=${encodeURIComponent(exportTarget.mimeType)}`
+    : `https://www.googleapis.com/drive/v3/files/${file.providerFileId}?alt=media`;
+  const response = await fetch(url, { headers: authHeaders as HeadersInit });
+  return { response, fileName, mimeType };
 }
